@@ -7,19 +7,8 @@ fn main() {
 
 fn part1(file: &'static str) -> u32 {
     let angels = fs::read_to_string(file).unwrap();
-    let mut max = 0;
-
-    for angel in angels.split("\n\n") {
-        let total: u32 = angel
-            .split_terminator("\n")
-            .map(|n| n.parse::<u32>().unwrap())
-            .sum();
-
-        if total > max {
-            max = total
-        }
-    }
-    max
+    let totals = parse_angels(angels);
+    totals[0]
 }
 
 #[test]
@@ -29,21 +18,26 @@ fn test_part1() {
 
 fn part2(file: &'static str) -> u32 {
     let angels = fs::read_to_string(file).unwrap();
-    let mut totals = vec![];
-
-    for angel in angels.split("\n\n") {
-        let total: u32 = angel
-            .split_terminator("\n")
-            .map(|n| n.parse::<u32>().unwrap())
-            .sum();
-
-        totals.push(total)
-    }
-    totals.sort_by(|a, b| b.cmp(a));
+    let totals = parse_angels(angels);
     totals[0..3].iter().sum()
 }
 
 #[test]
 fn test_part2() {
     assert_eq!(part2("test_input"), 45000)
+}
+
+fn parse_angels(angels: String) -> Vec<u32> {
+    let mut totals: Vec<u32> = angels
+        .split("\n\n")
+        .map(|angel|{
+            angel
+                .split_terminator("\n")
+                .map(|n| n.parse::<u32>().unwrap())
+                .sum()
+        })
+        .collect();
+
+    totals.sort_by(|a, b| b.cmp(a));
+    totals
 }
