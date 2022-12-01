@@ -6,8 +6,7 @@ fn main() {
 }
 
 fn part1(file: &'static str) -> u32 {
-    let totals = parse_angels(file);
-    totals[0]
+    parse_angels(file)[0]
 }
 
 #[test]
@@ -16,8 +15,7 @@ fn test_part1() {
 }
 
 fn part2(file: &'static str) -> u32 {
-    let totals = parse_angels(file);
-    totals[0..3].iter().sum()
+    parse_angels(file)[0..3].iter().sum()
 }
 
 #[test]
