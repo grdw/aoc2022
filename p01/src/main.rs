@@ -6,8 +6,7 @@ fn main() {
 }
 
 fn part1(file: &'static str) -> u32 {
-    let angels = fs::read_to_string(file).unwrap();
-    let totals = parse_angels(angels);
+    let totals = parse_angels(file);
     totals[0]
 }
 
@@ -17,8 +16,7 @@ fn test_part1() {
 }
 
 fn part2(file: &'static str) -> u32 {
-    let angels = fs::read_to_string(file).unwrap();
-    let totals = parse_angels(angels);
+    let totals = parse_angels(file);
     totals[0..3].iter().sum()
 }
 
@@ -27,7 +25,8 @@ fn test_part2() {
     assert_eq!(part2("test_input"), 45000)
 }
 
-fn parse_angels(angels: String) -> Vec<u32> {
+fn parse_angels(file: &'static str) -> Vec<u32> {
+    let angels = fs::read_to_string(file).unwrap();
     let mut totals: Vec<u32> = angels
         .split("\n\n")
         .map(|angel|{
