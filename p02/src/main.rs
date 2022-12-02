@@ -1,5 +1,9 @@
 use std::fs;
 
+const ROCK: u64 = 1;
+const PAPER: u64 = 2;
+const SCISSORS: u64 = 3;
+
 fn main() {
     println!("Part 1: {}", part1("input"));
     println!("Part 2: {}", part2("input"));
@@ -8,12 +12,14 @@ fn main() {
 fn part1(file: &'static str) -> u64 {
     let points = parse_file(file);
     points.into_iter().map(|(elf, me)| {
-        if (me == 2 && elf == 1) || (me == 3 && elf == 2) || (me == 1 && elf == 3) {
+        if (me == PAPER && elf == ROCK) ||
+           (me == SCISSORS && elf == PAPER) ||
+           (me == ROCK && elf == SCISSORS) {
             me + 6
         } else if me == elf {
             me + 3
         } else {
-            me + 0
+            me
         }
     }).sum()
 }
@@ -26,16 +32,26 @@ fn test_part1() {
 fn part2(file: &'static str) -> u64 {
     let points = parse_file(file);
     points.into_iter().map(|(elf, me)| {
-        if me == 2 {
+        if me == PAPER {
             elf + 3
-        } else if me == 1 {
-            if elf == 1 { 3 }      // if the elf picks Rock I pick Scissors
-            else if elf == 2 { 1 } // if the elf picks Paper I pick Rock
-            else { 2 }             // if the elf picks Scissors I pick Paper
+        } else if me == ROCK {
+            if elf == ROCK {
+                SCISSORS
+            } else if elf == PAPER {
+                ROCK
+            } else {
+                PAPER
+            }
         } else {
-            if elf == 1 { 8 }      // if the elf picks Rock I pick Paper
-            else if elf == 2 { 9 } // if the elf picks Paper I pick Scissors
-            else { 7 }             // if the elf picks Scissors I pick Rock
+            let hand = if elf == ROCK {
+                PAPER
+            } else if elf == PAPER {
+                SCISSORS
+            } else {
+                ROCK
+            };
+
+            hand + 6
         }
     }).sum()
 }
