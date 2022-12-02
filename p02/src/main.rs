@@ -3,6 +3,8 @@ use std::fs;
 const ROCK: u64 = 1;
 const PAPER: u64 = 2;
 const SCISSORS: u64 = 3;
+const WIN: u64 = 3;
+const LOSE: u64 = 1;
 
 fn main() {
     println!("Part 1: {}", part1("input"));
@@ -32,26 +34,24 @@ fn test_part1() {
 fn part2(file: &'static str) -> u64 {
     let points = parse_file(file);
     points.into_iter().map(|(elf, me)| {
-        if me == 2 {
-            elf + 3
-        } else if me == 1 {
-            if elf == ROCK {
-                SCISSORS
-            } else if elf == PAPER {
-                ROCK
-            } else {
-                PAPER
-            }
-        } else {
-            let hand = if elf == ROCK {
-                PAPER
-            } else if elf == PAPER {
-                SCISSORS
-            } else {
-                ROCK
-            };
+        match me {
+            LOSE => {
+                match elf {
+                    ROCK => SCISSORS,
+                    PAPER => ROCK,
+                    _ => PAPER
+                }
+            },
+            WIN => {
+                let hand = match elf {
+                    ROCK => PAPER,
+                    PAPER => SCISSORS,
+                    _ => ROCK
+                };
 
-            hand + 6
+                hand + 6
+            },
+            _ => elf + 3,
         }
     }).sum()
 }
