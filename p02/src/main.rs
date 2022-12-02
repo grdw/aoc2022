@@ -32,9 +32,9 @@ fn test_part1() {
 fn part2(file: &'static str) -> u64 {
     let points = parse_file(file);
     points.into_iter().map(|(elf, me)| {
-        if me == PAPER {
+        if me == 2 {
             elf + 3
-        } else if me == ROCK {
+        } else if me == 1 {
             if elf == ROCK {
                 SCISSORS
             } else if elf == PAPER {
