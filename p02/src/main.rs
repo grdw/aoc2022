@@ -12,8 +12,7 @@ fn main() {
 }
 
 fn part1(file: &'static str) -> u64 {
-    let points = parse_file(file);
-    points.into_iter().map(|(elf, me)| {
+    parse_file(file).into_iter().map(|(elf, me)| {
         if (me == PAPER && elf == ROCK) ||
            (me == SCISSORS && elf == PAPER) ||
            (me == ROCK && elf == SCISSORS) {
@@ -32,26 +31,15 @@ fn test_part1() {
 }
 
 fn part2(file: &'static str) -> u64 {
-    let points = parse_file(file);
-    points.into_iter().map(|(elf, me)| {
-        match me {
-            LOSE => {
-                match elf {
-                    ROCK => SCISSORS,
-                    PAPER => ROCK,
-                    _ => PAPER
-                }
-            },
-            WIN => {
-                let hand = match elf {
-                    ROCK => PAPER,
-                    PAPER => SCISSORS,
-                    _ => ROCK
-                };
-
-                hand + 6
-            },
-            _ => elf + 3,
+    parse_file(file).into_iter().map(|(elf, me)| {
+        match (me, elf) {
+            (LOSE, ROCK)     => SCISSORS,
+            (LOSE, PAPER)    => ROCK,
+            (LOSE, SCISSORS) => PAPER,
+            (WIN, ROCK)      => PAPER + 6,
+            (WIN, PAPER)     => SCISSORS + 6,
+            (WIN, SCISSORS)  => ROCK + 6,
+            (_, _) => elf + 3
         }
     }).sum()
 }
