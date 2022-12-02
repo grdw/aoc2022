@@ -29,13 +29,13 @@ fn part2(file: &'static str) -> u64 {
         if me == 2 {
             elf + 3
         } else if me == 1 {
-            if elf == 1 { 3 }
-            else if elf == 2 { 1 }
-            else { 2 }
+            if elf == 1 { 3 }      // if the elf picks Rock I pick Scissors
+            else if elf == 2 { 1 } // if the elf picks Paper I pick Rock
+            else { 2 }             // if the elf picks Scissors I pick Paper
         } else {
-            if elf == 1 { 8 }
-            else if elf == 2 { 9 }
-            else { 7 }
+            if elf == 1 { 8 }      // if the elf picks Rock I pick Paper
+            else if elf == 2 { 9 } // if the elf picks Paper I pick Scissors
+            else { 7 }             // if the elf picks Scissors I pick Rock
         }
     }).sum()
 }
