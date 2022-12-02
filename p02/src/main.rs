@@ -39,7 +39,7 @@ fn part2(file: &'static str) -> u64 {
             (WIN, ROCK)      => PAPER + 6,
             (WIN, PAPER)     => SCISSORS + 6,
             (WIN, SCISSORS)  => ROCK + 6,
-            (_, _) => elf + 3
+            (_, _)           => elf + 3
         }
     }).sum()
 }
