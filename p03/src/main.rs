@@ -33,38 +33,25 @@ fn test_part1() {
 }
 
 fn part2(file: &'static str) -> u64 {
-    let result = parse_rucksacks_part2(file);
+    let result = parse_badges(file);
     calculate_string_value(result)
 }
 
-fn parse_rucksacks_part2(file: &'static str) -> String {
+fn parse_badges(file: &'static str) -> String {
     let contents = fs::read_to_string(file).unwrap();
     let mut result = String::new();
-    let mut count = 0;
-    let mut last_index = 0;
-    let mut groups: Vec<String> = vec![];
+    let mut f_line: Vec<char> = vec![];
 
-    for (i, _) in contents.match_indices("\n") {
-        count += 1;
+    for (i, line) in contents.split("\n").enumerate() {
+        if i % 3 == 0 {
+            if let Some(d) = f_line.get(0) {
+                result.push(*d);
+            }
 
-        if count % 3 == 0 {
-            let s = &contents[last_index..i];
-            groups.push(String::from(s));
-            last_index = i + 1;
+            f_line = line.chars().collect();
+        } else {
+            f_line.retain(|&c| line.chars().any(|d| d == c));
         }
-    }
-
-    for group in &groups {
-        let m: Vec<&str> = group.split("\n").collect();
-        let mut unique: Vec<char> = m[0].chars().collect();
-
-        for rugsack in &m {
-            unique.retain(|&c| {
-                rugsack.chars().any(|d| d == c)
-            });
-        }
-
-        result.push(unique[0]);
     }
 
     result
