@@ -7,12 +7,14 @@ fn main() {
 
 fn part1(file: &'static str) -> u64 {
     let doubles = parse_rucksacks(file);
+
     calculate_string_value(doubles)
 }
 
 fn parse_rucksacks(file: &'static str) -> String {
     let mut result = String::new();
     let contents = fs::read_to_string(file).unwrap();
+
     for line in contents.split_terminator("\n") {
         let half = line.len() / 2;
         let comp1 = String::from(&line[0..half]);
@@ -34,6 +36,7 @@ fn test_part1() {
 
 fn part2(file: &'static str) -> u64 {
     let result = parse_badges(file);
+
     calculate_string_value(result)
 }
 
@@ -64,12 +67,12 @@ fn test_part2() {
 
 fn calculate_string_value(s: String) -> u64 {
     s.chars().map(|n| {
-        let start = n as u8;
-
-        if n.is_uppercase() {
-            (start - ('A' as u8) + 27) as u64
+        let (start, offset) = if n.is_uppercase() {
+            ('A', 27)
         } else {
-            (start - ('a' as u8) + 1) as u64
-        }
+            ('a', 1)
+        };
+
+        ((n as u8) - (start as u8) + offset) as u64
     }).sum()
 }
