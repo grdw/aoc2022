@@ -39,21 +39,17 @@ fn parse_areas(file: &'static str) -> Vec<(
     RangeInclusive<u8>
 )> {
     let file = fs::read_to_string(file).unwrap();
-    let mut result = vec![];
 
-    for line in file.split_terminator("\n") {
-        let s: Vec<&str> = line.split(",").collect();
+    file.split_terminator("\n").map(|line| {
+        let mut split = line.split(",");
 
-        result.push(
-            (parse_range(s[0]), parse_range(s[1]))
-        );
-    };
-
-    result
+        (parse_range(split.next()), parse_range(split.next()))
+    }).collect()
 }
 
-fn parse_range(area: &str) -> RangeInclusive<u8> {
+fn parse_range(area: Option<&str>) -> RangeInclusive<u8> {
     let range_value: Vec<u8> = area
+        .unwrap()
         .split("-")
         .map(|c| c.parse::<u8>().unwrap() )
         .collect();
