@@ -36,14 +36,12 @@ fn test_part1() {
 
 fn exec_instructions_9001(boxes: &mut Boxes, instructions: Instructions) {
     for (n, from, to) in instructions {
-        if let Some(f) = boxes.get_mut(from) {
-            let m = String::from(f.get(0..n).unwrap());
-            f.replace_range(0..n, "");
+        let f = &mut boxes[from];
+        let m = String::from(f.get(0..n).unwrap());
+        f.replace_range(0..n, "");
 
-            if let Some(t) = boxes.get_mut(to) {
-                t.insert_str(0, &m);
-            }
-        }
+        let t = &mut boxes[to];
+        t.insert_str(0, &m);
     }
 }
 
