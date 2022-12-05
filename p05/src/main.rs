@@ -20,13 +20,8 @@ fn parse_and_execute(file: &'static str, exec: fn(&mut Boxes, Instructions)) -> 
 fn exec_instructions_9000(boxes: &mut Boxes, instructions: Instructions) {
     for (n_moves, from, to) in instructions {
         for _ in 0..n_moves {
-            if let Some(f) = boxes.get_mut(from) {
-                let n = f.remove(0);
-
-                if let Some(t) = boxes.get_mut(to) {
-                  t.insert(0, n);
-                }
-            }
+            let n = boxes[from].remove(0);
+            boxes[to].insert(0, n);
         }
     }
 }
