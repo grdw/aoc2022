@@ -36,12 +36,34 @@ fn test_part1() {
     assert_eq!(part1("test_input"), String::from("CMZ"))
 }
 
-fn part2(file: &'static str) -> usize {
-    0
+fn part2(file: &'static str) -> String {
+    let (mut boxes, instructions) = parse_input(file);
+    execute_instructions_9001(&mut boxes, instructions);
+    boxes
+        .iter()
+        .map(|n| n.chars().nth(0).unwrap())
+        .collect::<String>()
+}
+
+fn execute_instructions_9001(
+    boxes: &mut Boxes,
+    instructions: Instructions
+) {
+    for (n, from, to) in instructions {
+        if let Some(f) = boxes.get_mut(from) {
+            let m = String::from(f.get(0..n).unwrap());
+            f.replace_range(0..n, "");
+
+            if let Some(t) = boxes.get_mut(to) {
+                t.insert_str(0, &m);
+            }
+        }
+    }
 }
 
 #[test]
 fn test_part2() {
+    assert_eq!(part2("test_input"), String::from("MCD"))
 }
 
 fn parse_input(file: &'static str) -> (Boxes, Instructions) {
