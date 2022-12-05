@@ -8,13 +8,17 @@ fn main() {
     println!("Part 2: {}", part2("input"));
 }
 
-fn part1(file: &'static str) -> String {
+fn parse_and_execute(file: &'static str, exec: fn(&mut Boxes, Instructions)) -> String {
     let (mut boxes, instructions) = parse_input(file);
-    exec_instructions_9000(&mut boxes, instructions);
+    exec(&mut boxes, instructions);
     boxes
         .iter()
         .map(|n| n.chars().nth(0).unwrap())
         .collect::<String>()
+}
+
+fn part1(file: &'static str) -> String {
+    parse_and_execute(file, exec_instructions_9000)
 }
 
 fn exec_instructions_9000(boxes: &mut Boxes, instructions: Instructions) {
@@ -37,12 +41,7 @@ fn test_part1() {
 }
 
 fn part2(file: &'static str) -> String {
-    let (mut boxes, instructions) = parse_input(file);
-    exec_instructions_9001(&mut boxes, instructions);
-    boxes
-        .iter()
-        .map(|n| n.chars().nth(0).unwrap())
-        .collect::<String>()
+    parse_and_execute(file, exec_instructions_9001)
 }
 
 fn exec_instructions_9001(boxes: &mut Boxes, instructions: Instructions) {
