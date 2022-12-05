@@ -98,9 +98,7 @@ fn parse_boxes(box_string: &str) -> Boxes {
 }
 
 fn parse_instructions(inst_string: &str) -> Instructions {
-    let mut instructions: Instructions = vec![];
-
-    for inst in inst_string.split_terminator("\n") {
+    inst_string.split_terminator("\n").map(|inst| {
         let mut result = vec![];
         for (i, n) in inst.split(" ").enumerate() {
             if i % 2 == 1 {
@@ -108,8 +106,6 @@ fn parse_instructions(inst_string: &str) -> Instructions {
             }
         }
 
-        instructions.push((result[0], result[1] - 1, result[2] - 1));
-    }
-
-    instructions
+        (result[0], result[1] - 1, result[2] - 1)
+    }).collect()
 }
