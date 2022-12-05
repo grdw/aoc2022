@@ -4,8 +4,8 @@ type Boxes = Vec<String>;
 type Instructions = Vec<(usize, usize, usize)>;
 
 fn main() {
-    println!("Part 1: {}", part1("input"));
-    println!("Part 2: {}", part2("input"));
+    println!("Part 1: {}", parse_and_execute("input", exec_instructions_9000));
+    println!("Part 2: {}", parse_and_execute("input", exec_instructions_9001));
 }
 
 fn parse_and_execute(file: &'static str, exec: fn(&mut Boxes, Instructions)) -> String {
@@ -15,10 +15,6 @@ fn parse_and_execute(file: &'static str, exec: fn(&mut Boxes, Instructions)) -> 
         .iter()
         .map(|n| n.chars().nth(0).unwrap())
         .collect::<String>()
-}
-
-fn part1(file: &'static str) -> String {
-    parse_and_execute(file, exec_instructions_9000)
 }
 
 fn exec_instructions_9000(boxes: &mut Boxes, instructions: Instructions) {
@@ -37,11 +33,10 @@ fn exec_instructions_9000(boxes: &mut Boxes, instructions: Instructions) {
 
 #[test]
 fn test_part1() {
-    assert_eq!(part1("test_input"), String::from("CMZ"))
-}
-
-fn part2(file: &'static str) -> String {
-    parse_and_execute(file, exec_instructions_9001)
+    assert_eq!(
+        parse_and_execute("test_input", exec_instructions_9000),
+        String::from("CMZ")
+    )
 }
 
 fn exec_instructions_9001(boxes: &mut Boxes, instructions: Instructions) {
@@ -59,7 +54,10 @@ fn exec_instructions_9001(boxes: &mut Boxes, instructions: Instructions) {
 
 #[test]
 fn test_part2() {
-    assert_eq!(part2("test_input"), String::from("MCD"))
+    assert_eq!(
+        parse_and_execute("test_input", exec_instructions_9001),
+        String::from("MCD")
+    )
 }
 
 fn parse_input(file: &'static str) -> (Boxes, Instructions) {
