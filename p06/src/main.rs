@@ -32,10 +32,10 @@ fn test_part2() {
 }
 
 fn parse_and_answer(file: &'static str, l: usize) -> usize {
-	let stream = fs::read_to_string(file).unwrap();
+    let stream = fs::read_to_string(file).unwrap();
     let mut answer = 0;
 
-	for i in 0..(stream.len() - l) {
+    for i in 0..(stream.len() - l) {
         let slice = &stream[i..i+l];
         let mut n: Vec<char> = slice.chars().collect();
         n.sort();
@@ -45,7 +45,7 @@ fn parse_and_answer(file: &'static str, l: usize) -> usize {
             answer = i + l;
             break;
         }
-	}
+    }
 
     answer
 }
