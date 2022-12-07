@@ -1,10 +1,7 @@
 $ cd /
-$ ls
 dir a
 $ cd a
-$ ls
 dir a
 2 a.txt
 $ cd a
-$ ls
 99999 a.txt

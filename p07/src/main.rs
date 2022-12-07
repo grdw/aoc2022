@@ -1,52 +1,26 @@
 use std::fs;
-use std::path::{Path};
 use std::collections::HashMap;
 
-type Sizes = HashMap<String, u64>;
+type Sizes = HashMap<String, usize>;
 
 fn main() {
     println!("Part 1: {}", part1("input"));
     //println!("Part 2: {}", part2("input"));
 }
 
-fn part1(file: &'static str) -> u64 {
-    parse_structure(file);
-    let mut col: Sizes = HashMap::new();
-    recurse_check(&Path::new("tmp"), &mut col);
-    fs::remove_dir_all("tmp").unwrap();
-    println!("{:?}", col);
-    col.values().filter(|&&val| val <= 100_000).sum()
-}
+fn part1(file: &'static str) -> usize {
+    let sizes = parse_structure(file);
+    let mut total_sizes: Sizes = HashMap::new();
 
-fn recurse_check(path: &Path, col: &mut Sizes) {
-    if path.is_dir() {
-        for entry in fs::read_dir(path).unwrap() {
-            let entry = entry.unwrap();
-            let path = entry.path();
-            if path.is_dir() {
-                recurse_check(&path, col);
-            } else {
-                let c: Vec<_> = path.components().collect();
-                let d: Vec<_> = (&c[1..c.len() -1]).to_vec();
+    for (key, val) in sizes {
+        let subkeys: Vec<&str> = key.split("/").collect();
+        for depth in 0..subkeys.len()-1 {
+            let sub_key = String::from(subkeys[depth].repeat(depth + 1));
 
-                for (i, p) in d.iter().enumerate(){
-                   let component = p
-                       .as_os_str()
-                       .to_os_string()
-                       .into_string()
-                       .unwrap();
-
-                   let n = format!("{}{}", component, i);
-                   let l = fs::read_to_string(&path)
-                       .unwrap()
-                       .parse::<u64>()
-                       .unwrap();
-
-                   col.entry(n).and_modify(|x| *x += l).or_insert(l);
-                }
-            }
+            total_sizes.entry(sub_key).and_modify(|n| *n += val).or_insert(val);
         }
     }
+    total_sizes.values().filter(|&&val| val <= 100_000).sum()
 }
 
 #[test]
@@ -65,10 +39,10 @@ fn test_part2() {
     assert_eq!(part2("test_input"), 1);
 }
 
-fn parse_structure(file: &'static str) {
+fn parse_structure(file: &'static str) -> Sizes {
     let commands = fs::read_to_string(file).unwrap();
-    let mut current_dir = vec!["tmp"];
-    fs::create_dir(current_dir.join("/")).unwrap();
+    let mut current_dir = vec![];
+    let mut col: Sizes = HashMap::new();
 
     for c in commands.split_terminator("\n") {
         let t: Vec<&str> = c.split(" ").collect();
@@ -85,12 +59,13 @@ fn parse_structure(file: &'static str) {
             let total = current_dir.join("/");
             let path = total + "/" + t[1];
 
-            if t[0] == "dir" {
-                fs::create_dir(&path).unwrap();
-            } else {
-                fs::write(&path, t[0]).unwrap();
+            if t[0] != "dir" {
+                let value = t[0].parse::<usize>().unwrap();
+                let key = String::from(&path);
+                col.entry(key).and_modify(|n| *n += value).or_insert(value);
             }
         }
     }
-}
 
+    col
+}
