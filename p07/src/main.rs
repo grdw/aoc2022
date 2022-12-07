@@ -14,13 +14,8 @@ fn part1(file: &'static str) -> u64 {
     let mut col: Sizes = HashMap::new();
     recurse_check(&Path::new("tmp"), &mut col);
     fs::remove_dir_all("tmp").unwrap();
-    col.into_iter().map(|(_, val)| {
-        if val < 100000 {
-            val
-        } else {
-            0
-        }
-    }).sum()
+    println!("{:?}", col);
+    col.values().filter(|&&val| val <= 100_000).sum()
 }
 
 fn recurse_check(path: &Path, col: &mut Sizes) {
@@ -32,16 +27,22 @@ fn recurse_check(path: &Path, col: &mut Sizes) {
                 recurse_check(&path, col);
             } else {
                 let c: Vec<_> = path.components().collect();
+                let d: Vec<_> = (&c[1..c.len() -1]).to_vec();
 
-                for i in 1..c.len()-1 {
-                    let component = c[i]
-                        .as_os_str()
-                        .to_os_string()
-                        .into_string()
-                        .unwrap();
+                for (i, p) in d.iter().enumerate(){
+                   let component = p
+                       .as_os_str()
+                       .to_os_string()
+                       .into_string()
+                       .unwrap();
 
-                    let l = fs::metadata(&path).unwrap().len();
-                    col.entry(component).and_modify(|x| *x += l).or_insert(l);
+                   let n = format!("{}{}", component, i);
+                   let l = fs::read_to_string(&path)
+                       .unwrap()
+                       .parse::<u64>()
+                       .unwrap();
+
+                   col.entry(n).and_modify(|x| *x += l).or_insert(l);
                 }
             }
         }
@@ -50,17 +51,18 @@ fn recurse_check(path: &Path, col: &mut Sizes) {
 
 #[test]
 fn test_part1() {
-    assert_eq!(part1("test_input"), 95437);
+    assert_eq!(part1("test_input"), 99999);
+    assert_eq!(part1("test_input2"), 95437);
 }
 
 fn part2(file: &'static str) -> usize {
-    fs::remove_dir_all("tmp").unwrap();
+    //fs::remove_dir_all("tmp").unwrap();
     0
 }
 
 #[test]
 fn test_part2() {
-    assert_eq!(part1("test_input"), 1);
+    assert_eq!(part2("test_input"), 1);
 }
 
 fn parse_structure(file: &'static str) {
@@ -87,13 +89,13 @@ fn parse_structure(file: &'static str) {
             }
             "dir" => {
                 let total = current_dir.join("/");
-                fs::create_dir(total + "/" + t[1]).unwrap()
+                let path = total + "/" + t[1];
+                fs::create_dir(&path).unwrap();
             },
             _ => {
                 let total = current_dir.join("/");
-                let size = t[0].parse::<usize>().unwrap();
                 let path = total + "/" + t[1];
-                fs::write(&path, vec![0; size]).unwrap();
+                fs::write(&path, t[0]).unwrap();
             }
         }
     }
