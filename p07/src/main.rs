@@ -73,28 +73,21 @@ fn parse_structure(file: &'static str) {
     for c in commands.split_terminator("\n") {
         let t: Vec<&str> = c.split(" ").collect();
 
-        match t[0] {
-            "$" => {
-                match t[1] {
-                    "cd" => {
-                        if t[2] == ".." {
-                            current_dir.pop();
-                        } else if t[2] != "/" {
-                            current_dir.push(t[2]);
-                        }
-                    },
-                    "ls" => (),
-                    _ => panic!("booooom!")
+        if t[0] == "$" {
+            if t[1] == "cd" {
+                if t[2] == ".." {
+                    current_dir.pop();
+                } else if t[2] != "/" {
+                    current_dir.push(t[2]);
                 }
             }
-            "dir" => {
-                let total = current_dir.join("/");
-                let path = total + "/" + t[1];
+        } else {
+            let total = current_dir.join("/");
+            let path = total + "/" + t[1];
+
+            if t[0] == "dir" {
                 fs::create_dir(&path).unwrap();
-            },
-            _ => {
-                let total = current_dir.join("/");
-                let path = total + "/" + t[1];
+            } else {
                 fs::write(&path, t[0]).unwrap();
             }
         }
