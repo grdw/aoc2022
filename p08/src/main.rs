@@ -1,8 +1,8 @@
 use std::fs;
 
-type Trees = Vec<Vec<u8>>;
-
 const DIRECTIONS: &'static str = "RLTB";
+
+type Trees = Vec<Vec<u8>>;
 
 fn main() {
     println!("Part 1: {}", part1("input"));
@@ -27,18 +27,12 @@ fn test_part1() {
 
 fn part2(file: &'static str) -> usize {
     let trees = parse(file);
-    let score_trees = score_trees(&trees);
-    let mut scenic_score = 0;
 
-    for scores in score_trees {
-        let val = scores.iter().map(|(s, _)| s ).product();
-
-        if val > scenic_score {
-            scenic_score = val
-        }
-    }
-
-    scenic_score
+    score_trees(&trees)
+        .iter()
+        .map(|scores| scores.iter().map(|(s, _)| s ).product())
+        .max()
+        .unwrap()
 }
 
 fn score_trees(trees: &Trees) -> Vec<Vec<(usize, usize)>> {
