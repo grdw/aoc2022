@@ -36,8 +36,67 @@ fn test_part1() {
 }
 
 fn part2(file: &'static str) -> usize {
-    let _trees = parse(file);
-    0
+    let trees = parse(file);
+    let grid_size = trees.len();
+    let mut scenic_score = 0;
+
+    for y in 1..grid_size-1 {
+        for x in 1..grid_size-1 {
+            let mut left_score = 0;
+            let mut right_score = 0;
+            let mut top_score = 0;
+            let mut bottom_score = 0;
+
+            for r in (x + 1)..grid_size {
+                let right = trees[y][r];
+                right_score += 1;
+
+                if trees[y][x] <= right {
+                    break;
+                }
+            }
+
+            for l in (0..x).rev() {
+                let left = trees[y][l];
+                left_score += 1;
+
+                if trees[y][x] <= left {
+                    break;
+                }
+            }
+
+            for b in (0..y).rev() {
+                let bottom = trees[b][x];
+                bottom_score += 1;
+
+                if trees[y][x] <= bottom {
+                    break;
+                }
+            }
+
+            for t in (y + 1)..grid_size {
+                let top = trees[t][x];
+                top_score += 1;
+
+                if trees[y][x] <= top {
+                    break;
+                }
+            }
+
+            let val = left_score * right_score * top_score * bottom_score;
+
+            if val > scenic_score {
+                scenic_score = val
+            }
+        }
+    }
+
+    scenic_score
+}
+
+#[test]
+fn test_part2() {
+    assert_eq!(part2("test_input"), 8);
 }
 
 fn parse(file: &'static str) -> Trees {
