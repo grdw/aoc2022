@@ -2,6 +2,8 @@ use std::fs;
 
 type Trees = Vec<Vec<u8>>;
 
+const DIRECTIONS: &'static str = "RLTB";
+
 fn main() {
     println!("Part 1: {}", part1("input"));
     println!("Part 2: {}", part2("input"));
@@ -9,25 +11,13 @@ fn main() {
 
 fn part1(file: &'static str) -> usize {
     let trees = parse(file);
-    let grid_size = trees.len();
-    let mut vis = (grid_size - 1) * 4;
+    let vis = (trees.len() - 1) * 4;
+    let sum = score_trees(&trees)
+        .iter()
+        .filter(|&scores| scores.iter().any(|(a, b)| a == b))
+        .count();
 
-    for y in 1..grid_size-1 {
-        for x in 1..grid_size-1 {
-            let around = vec![
-                trees[y][x + 1..grid_size].to_vec(),
-                trees[y][0..x].to_vec(),
-                trees[0..y].iter().map(|m| m[x]).collect::<Vec<u8>>(),
-                trees[y + 1..grid_size].iter().map(|m| m[x]).collect::<Vec<u8>>()
-            ];
-
-            if around.iter().any(|n| n.iter().all(|&m| m < trees[y][x])) {
-                vis += 1
-            }
-        }
-    }
-
-    vis
+    vis + sum
 }
 
 #[test]
@@ -37,26 +27,39 @@ fn test_part1() {
 
 fn part2(file: &'static str) -> usize {
     let trees = parse(file);
-    let grid_size = trees.len();
+    let score_trees = score_trees(&trees);
     let mut scenic_score = 0;
 
-    for y in 1..grid_size-1 {
-        for x in 1..grid_size-1 {
-            let val = "RLTB"
-                .chars()
-                .map(|n| calculate_score(&trees, x, y, n))
-                .product();
+    for scores in score_trees {
+        let val = scores.iter().map(|(s, _)| s ).product();
 
-            if val > scenic_score {
-                scenic_score = val
-            }
+        if val > scenic_score {
+            scenic_score = val
         }
     }
 
     scenic_score
 }
 
-fn calculate_score(trees: &Trees, x: usize, y: usize, d: char) -> usize {
+fn score_trees(trees: &Trees) -> Vec<Vec<(usize, usize)>> {
+    let grid_size = trees.len();
+    let mut result = vec![];
+
+    for y in 1..grid_size-1 {
+        for x in 1..grid_size-1 {
+            let inter = DIRECTIONS
+                .chars()
+                .map(|d| score(&trees, x, y, d))
+                .collect();
+
+            result.push(inter);
+        }
+    }
+
+    result
+}
+
+fn score(trees: &Trees, x: usize, y: usize, d: char) -> (usize, usize) {
     let grid_size = trees.len();
     let mut i = 1;
 
@@ -72,7 +75,7 @@ fn calculate_score(trees: &Trees, x: usize, y: usize, d: char) -> usize {
         i += 1;
 
         if i > max || trees[y][x] <= check {
-            break i - 1;
+            break (i - 1, max - 1);
         }
     }
 }
