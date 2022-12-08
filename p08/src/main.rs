@@ -101,13 +101,9 @@ fn test_part2() {
 
 fn parse(file: &'static str) -> Trees {
     let trees_string = fs::read_to_string(file).unwrap();
-    let mut trees: Trees = vec![];
-    for row in trees_string.split_terminator("\n") {
-        let mut row_vec = vec![];
-        for tree in row.chars() {
-            row_vec.push(tree as u8 - 48);
-        }
-        trees.push(row_vec);
-    }
-    trees
+
+    trees_string
+        .split_terminator("\n")
+        .map(|row| row.chars().map(|tree| tree as u8 - 48).collect())
+        .collect()
 }
