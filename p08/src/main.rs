@@ -58,7 +58,6 @@ fn part2(file: &'static str) -> usize {
 
 fn calculate_score(trees: &Trees, x: usize, y: usize, d: char) -> usize {
     let grid_size = trees.len();
-    let mut score = 0;
     let mut i = 1;
 
     loop {
@@ -70,17 +69,12 @@ fn calculate_score(trees: &Trees, x: usize, y: usize, d: char) -> usize {
             _ => panic!("Invalid direction!")
         };
 
-        score += 1;
         i += 1;
 
-        if i > max { break }
-
-        if trees[y][x] <= check {
-            break;
+        if i > max || trees[y][x] <= check {
+            break i - 1;
         }
     }
-
-    score
 }
 
 #[test]
