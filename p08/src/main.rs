@@ -60,8 +60,8 @@ fn calculate_score(trees: &Trees, x: usize, y: usize, d: char) -> usize {
     let mut score = 0;
 
     let bound = match d {
-        'R' => (trees.len() - x - 1),
         'L' => x,
+        'R' => (trees.len() - x - 1),
         'T' => (trees.len() - y - 1),
         'B' => y,
         _ => panic!("Invalid direction")
