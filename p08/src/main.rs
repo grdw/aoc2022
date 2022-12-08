@@ -57,26 +57,23 @@ fn part2(file: &'static str) -> usize {
 }
 
 fn calculate_score(trees: &Trees, x: usize, y: usize, d: char) -> usize {
+    let grid_size = trees.len();
     let mut score = 0;
+    let mut i = 1;
 
-    let bound = match d {
-        'L' => x,
-        'R' => (trees.len() - x - 1),
-        'T' => (trees.len() - y - 1),
-        'B' => y,
-        _ => panic!("Invalid direction")
-    };
-
-    for i in 1..=bound {
-        let check = match d {
-            'L' => trees[y][x - i],
-            'R' => trees[y][x + i],
-            'T' => trees[y + i][x],
-            'B' => trees[y - i][x],
+    loop {
+        let (check, max) = match d {
+            'L' => (trees[y][x - i], x),
+            'R' => (trees[y][x + i], grid_size - x - 1),
+            'T' => (trees[y + i][x], grid_size - y - 1),
+            'B' => (trees[y - i][x], y),
             _ => panic!("Invalid direction!")
         };
 
         score += 1;
+        i += 1;
+
+        if i > max { break }
 
         if trees[y][x] <= check {
             break;
