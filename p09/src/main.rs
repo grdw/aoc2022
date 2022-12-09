@@ -4,6 +4,19 @@ use std::collections::HashMap;
 type Directions = Vec<(char, isize)>;
 type Spots = HashMap<String, u64>;
 
+#[derive(Debug, PartialEq)]
+enum Dir {
+    UP,
+    DOWN,
+    LEFT,
+    RIGHT,
+    UPLEFT,
+    UPRIGHT,
+    DOWNLEFT,
+    DOWNRIGHT,
+    IDLE
+}
+
 fn main() {
     println!("Part 1: {}", part1("input"));
     println!("Part 2: {}", part2("input"));
@@ -19,7 +32,7 @@ fn part1(input: &'static str) -> usize {
     spots.insert("00".to_string(), 1);
 
     for (dir, steps) in &directions {
-        // println!("----- {}", dir);
+        println!("----- {}", dir);
         // These are all the positions H is in:
         for _ in 0..*steps {
             match dir {
@@ -33,31 +46,55 @@ fn part1(input: &'static str) -> usize {
             let x_diff = (hx - tx) as isize;
             let y_diff = (hy - ty) as isize;
 
-            //match (x_diff, y_diff) {
-            //    (2, 0) => tx += 1,
-            //    (2, -1) => {
-            //        ty -= 1;
-            //        tx += 1
-            //    },
-            //    (-2, 0) => tx -= 1,
-            //    (-2, 1) => {
-            //        ty += 1;
-            //        tx -= 1
-            //    },
-            //    (-2, -1) => {
-            //        ty -= 1;
-            //        tx -= 1
-            //    },
-            //    (0, 2) => ty += 1,
-            //    (1, 2) => {
-            //        tx += 1;
-            //        ty += 1
-            //    },
-            //    (0, -2) => ty -= 1,
-            //    (_, _) => ()
-            //}
+            let d = if x_diff == -2 && y_diff == 0 {
+                Dir::LEFT
+            } else if x_diff == 2 && y_diff == -1 {
+                Dir::DOWNRIGHT
+            } else if y_diff == 2 && x_diff == 1 {
+                Dir::UPRIGHT
+            } else if x_diff == 2 && y_diff == 0 {
+                Dir::RIGHT
+            } else if x_diff == -2 && y_diff == 1 {
+                Dir::UPLEFT
+            } else if x_diff == -2 && y_diff == -1 {
+                Dir::DOWNLEFT
+            } else if y_diff == 2 && x_diff == 0 {
+                Dir::UP
+            } else if y_diff == -2 && x_diff == 0 {
+                Dir::DOWN
+            } else {
+                Dir::IDLE
+            };
 
-            let key = format!("{}{}", tx, ty);
+            if d != Dir::IDLE {
+                println!("{:?} H: ({},{}) T: ({},{})", d, hx, hy, tx, ty);
+            }
+
+            match d {
+                Dir::UP => ty += 1,
+                Dir::DOWN => ty -= 1,
+                Dir::LEFT => tx -= 1,
+                Dir::RIGHT => tx += 1,
+                Dir::UPLEFT => {
+                    tx -= 1;
+                    ty += 1;
+                },
+                Dir::UPRIGHT => {
+                    tx += 1;
+                    ty += 1;
+                },
+                Dir::DOWNLEFT => {
+                    tx -= 1;
+                    ty -= 1;
+                },
+                Dir::DOWNRIGHT => {
+                    tx += 1;
+                    ty -= 1;
+                },
+                _ => {},
+            }
+
+            let key = format!("{}-{}", tx, ty);
             spots.entry(key).and_modify(|n| *n += 1).or_insert(1);
         };
         prev_dir = *dir;
