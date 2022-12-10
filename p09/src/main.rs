@@ -27,13 +27,12 @@ fn part1(input: &'static str) -> usize {
     let directions = parse(input);
     let (mut hx, mut hy) = (0, 0);
     let (mut tx, mut ty) = (0, 0);
-    let mut prev_dir = ' ';
     let mut spots: Spots = HashMap::new();
 
     //spots.insert("00".to_string(), 1);
 
     for (dir, steps) in &directions {
-        println!("--------- {} {}", dir, steps);
+        println!("========= {} {}", dir, steps);
         for _ in 0..*steps {
             // These are all the positions H is in:
             match dir {
@@ -64,6 +63,7 @@ fn part1(input: &'static str) -> usize {
             };
 
             if d != Dir::IDLE {
+                print!("✨ {:?} @", d);
                 //println!("{:?} H: ({},{}) T: ({},{})", d, hx, hy, tx, ty);
             }
 
@@ -97,7 +97,6 @@ fn part1(input: &'static str) -> usize {
             let key = format!("{}-{}", tx, ty);
             spots.entry(key).and_modify(|n| *n += 1).or_insert(1);
         };
-        prev_dir = *dir;
     }
 
     spots.keys().len()
@@ -109,11 +108,11 @@ fn debug_grid(hx: isize, hy: isize, tx: isize, ty: isize) {
     let min_y = vec![hy, ty, 0].into_iter().min().unwrap();
     let max_y = vec![hy, ty, 0].into_iter().max().unwrap();
 
-    for i in min_y..=max_y + 1 {
+    for i in ((min_y -2)..=max_y + 1).rev() {
         let mut row = String::new();
-        for j in min_x..=max_x + 1 {
-            let c = if i == (max_y - hy) && j == hx { 'H' }
-                    else if i == (max_y - ty) && j == tx { 'T' }
+        for j in (min_x - 2)..=max_x + 1 {
+            let c = if i == hy && j == hx { 'H' }
+                    else if i == ty && j == tx { 'T' }
                     else { '.' };
 
             row.push(c);
