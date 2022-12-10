@@ -1,4 +1,5 @@
 use std::fs;
+use std::cmp;
 use std::collections::HashMap;
 
 type Directions = Vec<(char, isize)>;
@@ -29,12 +30,12 @@ fn part1(input: &'static str) -> usize {
     let mut prev_dir = ' ';
     let mut spots: Spots = HashMap::new();
 
-    spots.insert("00".to_string(), 1);
+    //spots.insert("00".to_string(), 1);
 
     for (dir, steps) in &directions {
-        println!("----- {}", dir);
-        // These are all the positions H is in:
+        println!("--------- {} {}", dir, steps);
         for _ in 0..*steps {
+            // These are all the positions H is in:
             match dir {
                 'L' => hx -= 1,
                 'R' => hx += 1,
@@ -46,28 +47,24 @@ fn part1(input: &'static str) -> usize {
             let x_diff = (hx - tx) as isize;
             let y_diff = (hy - ty) as isize;
 
-            let d = if x_diff == -2 && y_diff == 0 {
-                Dir::LEFT
-            } else if x_diff == 2 && y_diff == -1 {
-                Dir::DOWNRIGHT
-            } else if y_diff == 2 && x_diff == 1 {
-                Dir::UPRIGHT
-            } else if x_diff == 2 && y_diff == 0 {
-                Dir::RIGHT
-            } else if x_diff == -2 && y_diff == 1 {
-                Dir::UPLEFT
-            } else if x_diff == -2 && y_diff == -1 {
-                Dir::DOWNLEFT
-            } else if y_diff == 2 && x_diff == 0 {
-                Dir::UP
-            } else if y_diff == -2 && x_diff == 0 {
-                Dir::DOWN
-            } else {
-                Dir::IDLE
+            let d = match (x_diff, y_diff) {
+                (-2, 0) => Dir::LEFT,
+                (-2, 1) => Dir::UPLEFT,
+                (-2, -1) => Dir::DOWNLEFT,
+                (2, 0) => Dir::RIGHT,
+                (2, 1) => Dir::UPRIGHT,
+                (2, -1) => Dir::DOWNRIGHT,
+                (0, -2) => Dir::DOWN,
+                (1, -2) => Dir::DOWNRIGHT,
+                (-1, -2) => Dir::DOWNLEFT,
+                (0, 2) => Dir::UP,
+                (1, 2) => Dir::UPRIGHT,
+                (-1, 2) => Dir::UPLEFT,
+                (_, _) => Dir::IDLE
             };
 
             if d != Dir::IDLE {
-                println!("{:?} H: ({},{}) T: ({},{})", d, hx, hy, tx, ty);
+                //println!("{:?} H: ({},{}) T: ({},{})", d, hx, hy, tx, ty);
             }
 
             match d {
@@ -94,6 +91,9 @@ fn part1(input: &'static str) -> usize {
                 _ => {},
             }
 
+            println!("--------- {} {}", x_diff, y_diff);
+            debug_grid(hx, hy, tx, ty);
+
             let key = format!("{}-{}", tx, ty);
             spots.entry(key).and_modify(|n| *n += 1).or_insert(1);
         };
@@ -101,6 +101,25 @@ fn part1(input: &'static str) -> usize {
     }
 
     spots.keys().len()
+}
+
+fn debug_grid(hx: isize, hy: isize, tx: isize, ty: isize) {
+    let min_x = vec![hx, tx, 0].into_iter().min().unwrap();
+    let max_x = vec![hx, tx, 0].into_iter().max().unwrap();
+    let min_y = vec![hy, ty, 0].into_iter().min().unwrap();
+    let max_y = vec![hy, ty, 0].into_iter().max().unwrap();
+
+    for i in min_y..=max_y + 1 {
+        let mut row = String::new();
+        for j in min_x..=max_x + 1 {
+            let c = if i == (max_y - hy) && j == hx { 'H' }
+                    else if i == (max_y - ty) && j == tx { 'T' }
+                    else { '.' };
+
+            row.push(c);
+        }
+        println!("{}", row)
+    }
 }
 
 #[test]
