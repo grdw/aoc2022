@@ -20,6 +20,30 @@ fn part1(input: &'static str) -> Option<usize> {
     let mut start = (0, 0);
     let mut end = (0, 0);
 
+    for y in 0..height {
+        for x in 0..width {
+            let current = height_map[y][x];
+
+            if current == 'S' {
+                start = (y, x);
+            }
+
+            if current == 'E' {
+                end = (y, x);
+            }
+        }
+    }
+
+    let start_id = (start.0 * width) + start.1;
+    let goal_id = (end.0 * width) + end.1;
+    let edges = get_edges(&height_map);
+
+    dijkstra(&edges, start_id, goal_id)
+}
+
+fn get_edges(height_map: &HeightMap) -> Edges{
+    let width = height_map[0].len();
+    let height = height_map.len();
     let directions: Vec<(isize, isize)> = vec![
         (-1, 0), (0, -1), (1, 0), (0, 1)
     ];
@@ -30,14 +54,6 @@ fn part1(input: &'static str) -> Option<usize> {
             let current = height_map[y][x];
             let ix = x as isize;
             let iy = y as isize;
-
-            if current == 'S' {
-                start = (y, x);
-            }
-
-            if current == 'E' {
-                end = (y, x);
-            }
 
             let id = (y * width) + x;
             for (dy, dx) in &directions {
@@ -58,10 +74,7 @@ fn part1(input: &'static str) -> Option<usize> {
         }
     }
 
-    let start_id = (start.0 * width) + start.1;
-    let goal_id = (end.0 * width) + end.1;
-
-    dijkstra(&edges, start_id, goal_id)
+    edges
 }
 
 fn dijkstra(edges: &Edges, start: usize, goal: usize) -> Option<usize> {
@@ -75,7 +88,6 @@ fn dijkstra(edges: &Edges, start: usize, goal: usize) -> Option<usize> {
         if position == goal { return Some(cost); }
         if cost > dist[position] { continue; }
 
-        //println!("{:?}", heap);
         for edge in &edges[position] {
             let next = State { cost: cost + 1, position: edge.0 };
 
@@ -129,13 +141,42 @@ fn test_part1() {
     assert_eq!(part1("test_input"), Some(31));
 }
 
-fn part2(input: &'static str) -> u64 {
-    0
+fn part2(input: &'static str) -> Option<usize> {
+    let height_map = parse(input);
+    let width = height_map[0].len();
+    let height = height_map.len();
+    let mut starts = vec![];
+    let mut routes = vec![];
+    let mut end = (0, 0);
+
+    for y in 0..height {
+        for x in 0..width {
+            let current = height_map[y][x];
+
+            if current == 'S' || current == 'a' {
+                starts.push((y, x));
+            }
+
+            if current == 'E' {
+                end = (y, x);
+            }
+        }
+    }
+
+    for (sy, sx) in starts {
+        let start_id = (sy * width) + sx;
+        let goal_id = (end.0 * width) + end.1;
+        let edges = get_edges(&height_map);
+
+        routes.push(dijkstra(&edges, start_id, goal_id));
+    }
+
+    routes.iter().map(|r| r.unwrap_or(9999)).min()
 }
 
 #[test]
 fn test_part2() {
-    assert_eq!(part2("test_input"), 1);
+    assert_eq!(part2("test_input"), Some(29));
 }
 
 fn parse(input: &'static str) -> HeightMap {
