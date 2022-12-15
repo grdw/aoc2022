@@ -37,7 +37,7 @@ impl Monkey {
             let n: BigUint;
             match operands[2].parse::<u64>() {
                 Ok(x) => n = x.to_biguint().unwrap(),
-                Err(_) => n= item.to_biguint().unwrap()
+                Err(_) => n= 1.to_biguint().unwrap()
             }
 
             match operands[1] {
