@@ -28,8 +28,12 @@ impl Monkey {
         }
     }
 
-    pub fn tests_positive(&self, value: u32) -> bool {
-        value % self.test == 0
+    pub fn throw_id(&self, value: u32) -> usize {
+        if value % self.test == 0 {
+            self.test_positive_id
+        } else {
+            self.test_negative_id
+        }
     }
 }
 
@@ -51,11 +55,7 @@ fn part1(file: &'static str) -> usize {
             monkey.determine_worry_level();
 
             while let Some(item) = monkey.items.pop() {
-                let id = if monkey.tests_positive(item) {
-                    monkey.test_positive_id
-                } else {
-                    monkey.test_negative_id
-                };
+                let id = monkey.throw_id(item);
 
                 move_items[id].push(item)
             }
