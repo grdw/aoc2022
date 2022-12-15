@@ -58,18 +58,18 @@ fn part1(input: &'static str) -> Option<usize> {
         }
     }
 
-    // Next up get out all the possible "edges", as in, from where
-    // to where can I go. All the weights are '1' of all the nodes
-    // then just do a little Dijkstra and you should be good.
-    // See https://github.com/grdw/aoc2021/blob/main/problem_0015/src/main.rs
+    let start_id = (start.0 * width) + start.1;
+    let goal_id = (end.0 * width) + end.1;
+
+    dijkstra(&edges, start_id, goal_id)
+}
+
+fn dijkstra(edges: &Edges, start: usize, goal: usize) -> Option<usize> {
     let mut dist: Vec<_> = (0..edges.len()).map(|_| usize::MAX).collect();
     let mut heap = BinaryHeap::new();
 
-    let start_id = (start.0 * width) + start.1;
-    let goal = (end.0 * width) + end.1;
-    println!("{} {}", start_id, goal);
-    dist[start_id] = 0;
-    heap.push(State { cost: 0, position: start_id });
+    dist[start] = 0;
+    heap.push(State { cost: 0, position: start });
 
     while let Some(State { cost, position }) = heap.pop() {
         if position == goal { return Some(cost); }
