@@ -1,6 +1,28 @@
 use std::fs;
-use id_tree::*;
-use id_tree::InsertBehavior::*;
+
+#[derive(Debug, PartialEq)]
+struct GNode {
+    value: Option<u8>,
+    children: Vec<GNode>
+}
+
+impl GNode {
+    pub fn root() -> GNode {
+        GNode { value: None, children: vec![] }
+    }
+
+    pub fn node(val: u8) -> GNode {
+        GNode { value: Some(val), children: vec![] }
+    }
+
+    pub fn nodec(val: Option<u8>, children: Vec<GNode>) -> GNode {
+        GNode { value: val, children: children }
+    }
+
+    pub fn add(&mut self, val: u8) {
+        self.children.push(GNode::node(val));
+    }
+}
 
 fn main() {
     println!("Part 1: {}", part1("input"));
@@ -10,7 +32,7 @@ fn main() {
 fn part1(file: &'static str) -> usize {
     let parsed = fs::read_to_string(file).unwrap();
     for group in parsed.split_terminator("\n\n") {
-        println!("{}", "----");
+        println!("{}", "===");
         for line in group.split("\n") {
             let tree = parse_tree(line);
         }
@@ -19,52 +41,98 @@ fn part1(file: &'static str) -> usize {
     0
 }
 
-fn parse_tree(line: &str) -> Tree<u8> {
-    let mut root: Tree<u8> = Tree::new();
+fn parse_tree(line: &str) -> GNode {
+    println!("\nDEBUGGING: {}", line);
+    let mut root: GNode = GNode::root();
     let mut depth = 0;
     let mut s = String::from("");
-    let mut id = root.insert(Node::new(0), AsRoot).unwrap();
 
     for l in line.chars() {
-        //println!("{}", root.to_string());
         match l {
             '[' => depth += 1,
             ']' => {
-                if s.len() > 1 {
-                    add_child(&mut s, &id, &mut root);
-                }
-
+                add_child(&mut s, &depth, &mut root);
                 depth -= 1;
             },
             '0'..='9' => s.push(l),
-            ',' => id = add_child(&mut s, &id, &mut root),
+            ',' => {
+                add_child(&mut s, &depth, &mut root)
+            },
             _ => panic!("Invalid char")
         }
-
-        println!("-----> {}", s);
     }
-
-    println!("\n\n\n\n\n");
-    let mut ssss = String::new();
-    root.write_formatted(&mut ssss).unwrap();
-    println!("{}", ssss);
 
     root
 }
 
-fn add_child(s: &mut String, id: &NodeId, root: &mut Tree<u8>) -> NodeId {
-    println!("{:?}, {:?}", s, id);
+fn add_child(s: &mut String, depth: &usize, root: &mut GNode) {
+    if s.len() < 1 { return }
+
+    let depth = depth - 1;
     let value = s.parse::<u8>().unwrap();
-    let child = Node::new(value);
+
+    let mut n = root;
+    for i in 0..depth {
+        n = n.children.get_mut(0).unwrap();
+    }
+
+    n.add(value);
     *s = String::from("");
-    root.insert(child, UnderNode(id)).unwrap()
 }
 
 #[test]
 fn test_parse_tree() {
-    parse_tree("[[[[[[]]]]]]");
-    //parse_tree("[1,[2,[3,[4,[5,6,7]]]],8,9]");
-    assert_eq!(true, false);
+    assert_eq!(
+        parse_tree("[1]"),
+        GNode::nodec(None, vec![GNode::node(1)])
+    );
+
+    assert_eq!(
+        parse_tree("[1,[2]]"),
+        GNode::nodec(
+            None,
+            vec![
+                GNode::nodec(Some(1), vec![GNode::node(2)])
+            ]
+        )
+    );
+
+    assert_eq!(
+        parse_tree("[1,[2,3]]"),
+        GNode::nodec(
+            None,
+            vec![
+                GNode::nodec(
+                    Some(1),
+                    vec![
+                        GNode::node(2),
+                        GNode::node(3)
+                    ]
+                )
+            ]
+        )
+    );
+
+    assert_eq!(
+        parse_tree("[1,[2,[5]],3]"),
+        GNode::nodec(
+            None,
+            vec![
+                GNode::nodec(
+                    Some(1),
+                    vec![
+                        GNode::nodec(
+                            Some(2),
+                            vec![
+                                GNode::node(5)
+                            ]
+                        )
+                    ]
+                ),
+                GNode::node(3)
+            ]
+        )
+    );
 }
 
 #[test]
