@@ -55,9 +55,7 @@ fn parse_tree(line: &str) -> GNode {
                 depth -= 1;
             },
             '0'..='9' => s.push(l),
-            ',' => {
-                add_child(&mut s, &depth, &mut root)
-            },
+            ',' => add_child(&mut s, &depth, &mut root),
             _ => panic!("Invalid char")
         }
     }
@@ -70,10 +68,12 @@ fn add_child(s: &mut String, depth: &usize, root: &mut GNode) {
 
     let depth = depth - 1;
     let value = s.parse::<u8>().unwrap();
-
     let mut n = root;
+
+    // Cheap depth traversal
     for i in 0..depth {
-        n = n.children.get_mut(0).unwrap();
+        let len = n.children.len() - 1;
+        n = n.children.get_mut(len).unwrap();
     }
 
     n.add(value);
@@ -109,6 +109,24 @@ fn test_parse_tree() {
                         GNode::node(3)
                     ]
                 )
+            ]
+        )
+    );
+
+    assert_eq!(
+        parse_tree("[1,5,[2,3],6]"),
+        GNode::nodec(
+            None,
+            vec![
+                GNode::node(1),
+                GNode::nodec(
+                    Some(5),
+                    vec![
+                        GNode::node(2),
+                        GNode::node(3)
+                    ]
+                ),
+                GNode::node(6),
             ]
         )
     );
