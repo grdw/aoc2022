@@ -1,14 +1,15 @@
 use std::fs;
 
+const WIDTH: isize = 40;
+
 type Instructions = Vec<String>;
 
 fn main() {
     println!("Part 1: {}", part1("input"));
-    println!("Part 2: {}", part2("input"));
+    println!("Part 2: \n{}", part2("input"));
 }
 
 fn part1(input: &'static str) -> isize {
-    let mut x: isize = 1;
     let instructions: Instructions = parse_instructions(input);
 
     calculate_signal_strength(&instructions, 20) +
@@ -88,11 +89,45 @@ fn test_part1() {
     assert_eq!(part1("test_input2"), 13140);
 }
 
-fn part2(input: &'static str) -> u64 {
-    0
+fn part2(input: &'static str) -> String {
+    let instructions: Instructions = parse_instructions(input);
+    let mut drawing = String::new();
+    let mut cycle = 0;
+    let mut x = 1;
+
+    for instr in instructions {
+        if instr.starts_with("addx") {
+            draw(&mut cycle, x, &mut drawing);
+            draw(&mut cycle, x, &mut drawing);
+            let (_, val) = instr.split_once(" ").unwrap();
+            let isize_val = val.parse::<isize>().unwrap();
+            x += isize_val;
+        } else if instr.starts_with("noop") {
+            draw(&mut cycle, x, &mut drawing);
+        } else {
+            panic!("Invalid command")
+        }
+    }
+
+    drawing
+}
+
+fn draw(cycle: &mut isize, x: isize, drawing: &mut String) {
+    *cycle += 1;
+
+    let sprite = *cycle % WIDTH;
+    let c = if sprite <= (x + 2) && sprite >= x {
+        '⬜'
+    } else {
+        '⬛'
+    };
+    drawing.push(c);
+    if *cycle % WIDTH == 0 {
+        drawing.push('\n')
+    }
 }
 
 #[test]
 fn test_part2() {
-    assert_eq!(part2("test_input"), 1);
+    println!("{}", part2("test_input2"));
 }
