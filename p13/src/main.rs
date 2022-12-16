@@ -1,21 +1,32 @@
 use std::fs;
 
 #[derive(Debug, PartialEq)]
+enum NodeType {
+    Root,
+    List,
+    Value(u8)
+}
+
+#[derive(Debug, PartialEq)]
 struct GNode {
-    value: Option<u8>,
+    value: NodeType,
     children: Vec<GNode>
 }
 
 impl GNode {
     pub fn root() -> GNode {
-        GNode { value: None, children: vec![] }
+        GNode { value: NodeType::Root, children: vec![] }
+    }
+
+    pub fn parent() -> GNode {
+        GNode { value: NodeType::List, children: vec![] }
     }
 
     pub fn node(val: u8) -> GNode {
-        GNode { value: Some(val), children: vec![] }
+        GNode { value: NodeType::Value(val), children: vec![] }
     }
 
-    pub fn nodec(val: Option<u8>, children: Vec<GNode>) -> GNode {
+    pub fn nodec(val: NodeType, children: Vec<GNode>) -> GNode {
         GNode { value: val, children: children }
     }
 
@@ -23,8 +34,13 @@ impl GNode {
         self.children.push(GNode::node(val));
     }
 
-    pub fn comparible(&self) -> bool {
-        self.children.len() == 0 && self.value.is_some()
+    pub fn first_child_val(&self, backup: u8) -> u8 {
+        if let Some(first_child) = self.children.get(0) {
+            if let NodeType::Value(value) = first_child.value {
+                return value
+            }
+        }
+        backup
     }
 }
 
@@ -41,12 +57,13 @@ fn part1(file: &'static str) -> usize {
         let l_tree = parse_tree(left);
         let r_tree = parse_tree(right);
         let mut ordered = false;
-        println!("\n 🌿 PAIR: {}", i + 1);
+        let j = i + 1;
+        println!("\n 🌿 PAIR: {}", j);
         traverse(&l_tree, &r_tree, &mut ordered);
 
         if ordered {
-            println!("🎉 {}", i);
-            total += (i + 1)
+            println!("🎉 {}", j);
+            total += j
         }
     }
     total
@@ -60,45 +77,31 @@ fn traverse(l: &GNode, r: &GNode, ordered: &mut bool) {
             (Some(l_child), Some(r_child)) => {
                 println!("\n{:?} --- 🥊 --- {:?}", l_child, r_child);
 
-                if l_child.comparible() && r_child.comparible() {
-                    let l_val = l_child.value.unwrap();
-                    let r_val = r_child.value.unwrap();
-                    if l_val < r_val {
-                        *ordered = true
-                    }
-                } else if l_child.comparible() {
-                    let l_val = l_child.value.unwrap();
-                    if let Some(n) = r_child.children.get(0) {
-                        let r_val = n.value.unwrap_or(l_val);
+                match (&l_child.value, &r_child.value) {
+                    (NodeType::Value(l_val), NodeType::Value(r_val)) => {
                         if l_val < r_val {
                             *ordered = true
                         }
-                    }
-                    break;
-                } else if r_child.comparible() {
-                    let r_val = r_child.value.unwrap();
-                    if let Some(n) = l_child.children.get(0) {
-                        let l_val = n.value.unwrap_or(r_val);
-                        if l_val < r_val {
+                    },
+                    (NodeType::Value(l_val), NodeType::List) => {
+                        if *l_val < r_child.first_child_val(*l_val) {
                             *ordered = true
                         }
-                    }
-                    break;
-                } else {
-
+                        break;
+                    },
+                    (NodeType::List, NodeType::Value(r_val)) => {
+                        if l_child.first_child_val(*r_val) < *r_val {
+                            *ordered = true
+                        }
+                        break;
+                    },
+                    (_, _) => ()
                 }
 
-                traverse(l_child, r_child, ordered)
+                traverse(l_child, r_child, ordered);
             },
-            (Some(l_child), None) => {
-                println!("{}", "Only a left child");
-            },
-            (None, Some(r_child)) => {
-                if r_child.children.len() == 0 {
-                    *ordered = true;
-                }
-                println!("{}", "Only a right child");
-            },
+            (Some(_l_child), None) => (),
+            (None, Some(_r_child)) => *ordered = true,
             (None, None) => break
         }
 
@@ -159,23 +162,23 @@ fn add_blank(depth: &usize, root: &mut GNode) {
         n = n.children.get_mut(len).unwrap();
     }
 
-    n.children.push(GNode::root());
+    n.children.push(GNode::parent());
 }
 
 #[test]
 fn test_parse_tree() {
     assert_eq!(
         parse_tree("[1]"),
-        GNode::nodec(None, vec![GNode::node(1)])
+        GNode::nodec(NodeType::Root, vec![GNode::node(1)])
     );
 
     assert_eq!(
         parse_tree("[[1],[2]]"),
         GNode::nodec(
-            None,
+            NodeType::Root,
             vec![
-                GNode::nodec(None, vec![GNode::node(1)]),
-                GNode::nodec(None, vec![GNode::node(2)])
+                GNode::nodec(NodeType::List, vec![GNode::node(1)]),
+                GNode::nodec(NodeType::List, vec![GNode::node(2)])
             ]
         )
     );
@@ -183,10 +186,10 @@ fn test_parse_tree() {
     assert_eq!(
         parse_tree("[1,[2]]"),
         GNode::nodec(
-            None,
+            NodeType::Root,
             vec![
                 GNode::node(1),
-                GNode::nodec(None, vec![GNode::node(2)])
+                GNode::nodec(NodeType::List, vec![GNode::node(2)])
             ]
         )
     );
@@ -194,11 +197,11 @@ fn test_parse_tree() {
     assert_eq!(
         parse_tree("[1,[2,3]]"),
         GNode::nodec(
-            None,
+            NodeType::Root,
             vec![
                 GNode::node(1),
                 GNode::nodec(
-                    None,
+                    NodeType::List,
                     vec![
                         GNode::node(2),
                         GNode::node(3)
@@ -211,12 +214,12 @@ fn test_parse_tree() {
     assert_eq!(
         parse_tree("[1,5,[2,3],6]"),
         GNode::nodec(
-            None,
+            NodeType::Root,
             vec![
                 GNode::node(1),
                 GNode::node(5),
                 GNode::nodec(
-                    None,
+                    NodeType::List,
                     vec![
                         GNode::node(2),
                         GNode::node(3)
@@ -230,15 +233,15 @@ fn test_parse_tree() {
     assert_eq!(
         parse_tree("[1,[2,[5]],3]"),
         GNode::nodec(
-            None,
+            NodeType::Root,
             vec![
                 GNode::node(1),
                 GNode::nodec(
-                    None,
+                    NodeType::List,
                     vec![
                         GNode::node(2),
                         GNode::nodec(
-                            None,
+                            NodeType::List,
                             vec![
                                 GNode::node(5)
                             ]
@@ -253,7 +256,7 @@ fn test_parse_tree() {
     assert_eq!(
         parse_tree("[]"),
         GNode::nodec(
-            None,
+            NodeType::Root,
             vec![]
         )
     );
