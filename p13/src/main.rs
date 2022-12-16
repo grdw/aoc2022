@@ -32,17 +32,16 @@ fn main() {
 fn part1(file: &'static str) -> usize {
     let parsed = fs::read_to_string(file).unwrap();
     for group in parsed.split_terminator("\n\n") {
-        println!("{}", "===");
-        for line in group.split("\n") {
-            let tree = parse_tree(line);
-        }
+        let (left, right) = group.split_once("\n").unwrap();
+        let l_tree = parse_tree(left);
+        let r_tree = parse_tree(right);
     }
 
     0
 }
 
 fn parse_tree(line: &str) -> GNode {
-    println!("\nDEBUGGING: {}", line);
+    //println!("\nDEBUGGING: {}", line);
     let mut root: GNode = GNode::root();
     let mut depth = 0;
     let mut s = String::from("");
@@ -59,7 +58,8 @@ fn parse_tree(line: &str) -> GNode {
             },
             '0'..='9' => s.push(l),
             ',' => add_child(&mut s, &depth, &mut root),
-            _ => panic!("Invalid char")
+            '\n' => (),
+            _ => panic!("Invalid char {}", l)
         }
     }
 
@@ -73,8 +73,6 @@ fn add_child(s: &mut String, depth: &usize, root: &mut GNode) {
     let value = s.parse::<u8>().unwrap();
     let mut n = root;
 
-    // Cheap depth traversal
-    println!("{}", depth);
     for i in 0..depth {
         let len = n.children.len() - 1;
         n = n.children.get_mut(len).unwrap();
