@@ -32,24 +32,32 @@ fn parse_instructions(input: &'static str) -> Instructions {
 
 fn calculate_signal_strength(inst: &Instructions, max: isize) -> isize {
     let mut cycle = 0;
+    let mut signal_strength = 0;
     let mut x = 1;
 
     for instr in inst {
         if instr.starts_with("addx") {
-            cycle += 1;
-            if cycle >= max  { break };
+            tick(&mut cycle, &mut signal_strength, x, max);
+            tick(&mut cycle, &mut signal_strength, x, max);
             let (_, val) = instr.split_once(" ").unwrap();
             let isize_val = val.parse::<isize>().unwrap();
             x += isize_val;
-            cycle += 1;
-            if cycle >= max  { break };
+        } else if instr.starts_with("noop") {
+            tick(&mut cycle, &mut signal_strength, x, max);
         } else {
-            cycle += 1;
-            if cycle >= max  { break };
+            panic!("Invalid command")
         }
     }
 
-    max * x
+    signal_strength * max
+}
+
+fn tick(cycle: &mut isize, signal_strength: &mut isize, x: isize, max: isize) {
+    *cycle += 1;
+
+    if *cycle == max {
+        *signal_strength += x;
+    }
 }
 
 #[test]
@@ -70,9 +78,9 @@ fn test_calculate_signal_strength_easy() {
 
     assert_eq!(calculate_signal_strength(&instructions, 1), 1);
     assert_eq!(calculate_signal_strength(&instructions, 2), 2);
-    assert_eq!(calculate_signal_strength(&instructions, 3), 12);
+    assert_eq!(calculate_signal_strength(&instructions, 3), 3);
     assert_eq!(calculate_signal_strength(&instructions, 4), 16);
-    assert_eq!(calculate_signal_strength(&instructions, 5), -5);
+    assert_eq!(calculate_signal_strength(&instructions, 5), 20);
 }
 
 #[test]
