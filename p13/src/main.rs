@@ -49,7 +49,10 @@ fn parse_tree(line: &str) -> GNode {
 
     for l in line.chars() {
         match l {
-            '[' => depth += 1,
+            '[' => {
+                add_blank(&depth, &mut root);
+                depth += 1;
+            },
             ']' => {
                 add_child(&mut s, &depth, &mut root);
                 depth -= 1;
@@ -71,6 +74,7 @@ fn add_child(s: &mut String, depth: &usize, root: &mut GNode) {
     let mut n = root;
 
     // Cheap depth traversal
+    println!("{}", depth);
     for i in 0..depth {
         let len = n.children.len() - 1;
         n = n.children.get_mut(len).unwrap();
@@ -78,6 +82,20 @@ fn add_child(s: &mut String, depth: &usize, root: &mut GNode) {
 
     n.add(value);
     *s = String::from("");
+}
+
+fn add_blank(depth: &usize, root: &mut GNode) {
+    if *depth < 1 { return }
+
+    let depth = depth - 1;
+    let mut n = root;
+
+    for i in 0..depth {
+        let len = n.children.len() - 1;
+        n = n.children.get_mut(len).unwrap();
+    }
+
+    n.children.push(GNode::root());
 }
 
 #[test]
@@ -88,11 +106,23 @@ fn test_parse_tree() {
     );
 
     assert_eq!(
+        parse_tree("[[1],[2]]"),
+        GNode::nodec(
+            None,
+            vec![
+                GNode::nodec(None, vec![GNode::node(1)]),
+                GNode::nodec(None, vec![GNode::node(2)])
+            ]
+        )
+    );
+
+    assert_eq!(
         parse_tree("[1,[2]]"),
         GNode::nodec(
             None,
             vec![
-                GNode::nodec(Some(1), vec![GNode::node(2)])
+                GNode::node(1),
+                GNode::nodec(None, vec![GNode::node(2)])
             ]
         )
     );
@@ -102,8 +132,9 @@ fn test_parse_tree() {
         GNode::nodec(
             None,
             vec![
+                GNode::node(1),
                 GNode::nodec(
-                    Some(1),
+                    None,
                     vec![
                         GNode::node(2),
                         GNode::node(3)
@@ -119,8 +150,9 @@ fn test_parse_tree() {
             None,
             vec![
                 GNode::node(1),
+                GNode::node(5),
                 GNode::nodec(
-                    Some(5),
+                    None,
                     vec![
                         GNode::node(2),
                         GNode::node(3)
@@ -136,11 +168,13 @@ fn test_parse_tree() {
         GNode::nodec(
             None,
             vec![
+                GNode::node(1),
                 GNode::nodec(
-                    Some(1),
+                    None,
                     vec![
+                        GNode::node(2),
                         GNode::nodec(
-                            Some(2),
+                            None,
                             vec![
                                 GNode::node(5)
                             ]
@@ -149,6 +183,14 @@ fn test_parse_tree() {
                 ),
                 GNode::node(3)
             ]
+        )
+    );
+
+    assert_eq!(
+        parse_tree("[]"),
+        GNode::nodec(
+            None,
+            vec![]
         )
     );
 }
