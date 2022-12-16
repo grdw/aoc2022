@@ -41,7 +41,7 @@ fn part1(file: &'static str) -> usize {
         let l_tree = parse_tree(left);
         let r_tree = parse_tree(right);
         let mut ordered = false;
-        println!("\nPAIR: {}", i + 1);
+        println!("\n 🌿 PAIR: {}", i + 1);
         traverse(&l_tree, &r_tree, &mut ordered);
 
         if ordered {
