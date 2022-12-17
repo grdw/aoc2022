@@ -50,41 +50,19 @@ fn highest_y(lines: &Lines) -> i16 {
 
 fn part1(file: &'static str) -> usize {
     let lines = parse_lines(file);
-    let mut sand_count = 0;
-    let mut points = vec![];
-    let max_y = highest_y(&lines);
 
-    while is_air_lines(&lines, &points, SAND_X, SAND_Y) && !is_void(&points, max_y) {
-        let sand_point = Point::new(SAND_X, SAND_Y);
-        points.push(sand_point);
+    drop_sand(&lines, is_air_lines_v) - 1
+}
 
-        let mut i = 1;
-        let mut j = 0;
-        let l = points.len() - 1;
+fn is_air_lines_v(lines: &Lines, points: &Points, x: i16, y: i16, max_y: i16) -> bool {
+    let n = if points.is_empty() {
+        true
+    } else {
+        let curr_sand = &points[points.len() - 1];
+        max_y >= curr_sand.y
+    };
 
-        loop {
-            if is_air_lines(&lines, &points, SAND_X + j, SAND_Y + i) {
-                let p_m = points.get_mut(l).unwrap();
-                p_m.y = SAND_Y + i;
-                p_m.x = SAND_X + j;
-                i += 1;
-            } else if is_air_lines(&lines, &points, SAND_X + j - 1, SAND_Y + i) {
-                j -= 1;
-            } else if is_air_lines(&lines, &points, SAND_X + j + 1, SAND_Y + i) {
-                j += 1;
-            } else {
-                break;
-            }
-
-            if is_void(&points, max_y) {
-                break;
-            }
-        }
-        //debug(&points);
-        sand_count += 1;
-    }
-
-    sand_count - 1
+    n && is_air_lines(lines, points, x, y)
 }
 
 fn is_air_lines(lines: &Lines, points: &Points, x: i16, y: i16) -> bool {
@@ -93,13 +71,6 @@ fn is_air_lines(lines: &Lines, points: &Points, x: i16, y: i16) -> bool {
         (l.start.x..=l.end.x).contains(&x) &&
         (l.start.y..=l.end.y).contains(&y)
     )
-}
-
-fn is_void(points: &Points, max_y: i16) -> bool {
-    if points.is_empty() { return false }
-    let curr_sand = &points[points.len() - 1];
-
-    max_y < curr_sand.y
 }
 
 #[test]
@@ -157,11 +128,22 @@ fn parse_lines(file: &'static str) -> Lines {
 
 fn part2(file: &'static str) -> usize {
     let lines = parse_lines(file);
+
+    drop_sand(&lines, is_air_lines_f)
+}
+
+fn is_air_lines_f(lines: &Lines, points: &Points, x: i16, y: i16, max_y: i16) -> bool {
+    if y == max_y { return false }
+
+    is_air_lines(lines, points, x, y)
+}
+
+fn drop_sand(lines: &Lines, is_air: fn(&Lines, &Points, i16, i16, i16) -> bool) -> usize {
     let mut sand_count = 0;
     let mut points = vec![];
     let max_y = highest_y(&lines) + 2;
 
-    while is_air_lines_f(&lines, &points, SAND_X, SAND_Y, max_y) {
+    while is_air(&lines, &points, SAND_X, SAND_Y, max_y) {
         let sand_point = Point::new(SAND_X, SAND_Y);
         points.push(sand_point);
 
@@ -170,30 +152,23 @@ fn part2(file: &'static str) -> usize {
         let l = points.len() - 1;
 
         loop {
-            if is_air_lines_f(&lines, &points, SAND_X + j, SAND_Y + i, max_y) {
+            if is_air(&lines, &points, SAND_X + j, SAND_Y + i, max_y) {
                 let p_m = points.get_mut(l).unwrap();
                 p_m.y = SAND_Y + i;
                 p_m.x = SAND_X + j;
                 i += 1;
-            } else if is_air_lines_f(&lines, &points, SAND_X + j - 1, SAND_Y + i, max_y) {
+            } else if is_air(&lines, &points, SAND_X + j - 1, SAND_Y + i, max_y) {
                 j -= 1;
-            } else if is_air_lines_f(&lines, &points, SAND_X + j + 1, SAND_Y + i, max_y) {
+            } else if is_air(&lines, &points, SAND_X + j + 1, SAND_Y + i, max_y) {
                 j += 1;
             } else {
                 break;
             }
         }
-        //debug(&points);
         sand_count += 1;
     }
 
     sand_count
-}
-
-fn is_air_lines_f(lines: &Lines, points: &Points, x: i16, y: i16, max_y: i16) -> bool {
-    if y == max_y { return false }
-
-    is_air_lines(lines, points, x, y)
 }
 
 #[test]
