@@ -1,9 +1,10 @@
 use std::fs;
+use std::collections::HashSet;
 
 const SAND_X: i16 = 500;
 const SAND_Y: i16 = 0;
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq, Hash)]
 struct Point {
     x: i16,
     y: i16
@@ -24,7 +25,7 @@ struct LinePoint {
 #[derive(Debug)]
 struct Line { start: LinePoint, end: LinePoint }
 
-type Points = Vec<Point>;
+type Points = HashSet<Point>;
 type Lines = Vec<Line>;
 
 fn main() {
@@ -59,20 +60,17 @@ fn is_air_lines_v(
     points: &Points,
     x: i16,
     y: i16,
+    ny: i16,
     max_y: i16) -> bool {
 
-    let not_void = if points.is_empty() {
-        true
-    } else {
-        let curr_sand = &points[points.len() - 1];
-        max_y >= curr_sand.y
-    };
+    let not_void = max_y >= (ny - 1);
 
     not_void && is_air_lines(lines, points, x, y)
 }
 
 fn is_air_lines(lines: &Lines, points: &Points, x: i16, y: i16) -> bool {
-    !points.iter().any(|n| n.x == x && n.y == y) &&
+    let p = Point::new(x, y);
+    !points.contains(&p) &&
     !lines.iter().any(|l|
         (l.start.x..=l.end.x).contains(&x) &&
         (l.start.y..=l.end.y).contains(&y)
@@ -100,6 +98,7 @@ fn is_air_lines_f(
     points: &Points,
     x: i16,
     y: i16,
+    _ny: i16,
     max_y: i16) -> bool {
 
     if y == max_y { return false }
@@ -109,34 +108,34 @@ fn is_air_lines_f(
 
 fn drop_sand(
     lines: &Lines,
-    is_air: fn(&Lines, &Points, i16, i16, i16) -> bool) -> usize {
+    is_air: fn(&Lines, &Points, i16, i16, i16, i16) -> bool) -> usize {
 
+    let mut prev_y = 0;
     let mut sand_count = 0;
-    let mut points = vec![];
+    let mut points = HashSet::new();
     let max_y = highest_y(&lines) + 2;
 
-    while is_air(&lines, &points, SAND_X, SAND_Y, max_y) {
-        let sand_point = Point::new(SAND_X, SAND_Y);
-        points.push(sand_point);
-
+    while is_air(&lines, &points, SAND_X, SAND_Y, prev_y, max_y) {
+        let mut sand_point = Point::new(SAND_X, SAND_Y);
         let mut i = 1;
         let mut j = 0;
-        let l = points.len() - 1;
 
         loop {
-            if is_air(&lines, &points, SAND_X + j, SAND_Y + i, max_y) {
-                let p_m = points.get_mut(l).unwrap();
-                p_m.y = SAND_Y + i;
-                p_m.x = SAND_X + j;
+            if is_air(&lines, &points, SAND_X + j, SAND_Y + i, SAND_Y + i, max_y) {
+                sand_point.y = SAND_Y + i;
+                sand_point.x = SAND_X + j;
                 i += 1;
-            } else if is_air(&lines, &points, SAND_X + j - 1, SAND_Y + i, max_y) {
+            } else if is_air(&lines, &points, SAND_X + j - 1, SAND_Y + i, SAND_Y + i, max_y) {
                 j -= 1;
-            } else if is_air(&lines, &points, SAND_X + j + 1, SAND_Y + i, max_y) {
+            } else if is_air(&lines, &points, SAND_X + j + 1, SAND_Y + i, SAND_Y + i, max_y) {
                 j += 1;
             } else {
                 break;
             }
         }
+
+        points.insert(sand_point);
+        prev_y = SAND_Y + i;
         sand_count += 1;
     }
 
