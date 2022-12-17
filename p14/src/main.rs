@@ -1,6 +1,9 @@
 use std::fs;
 use std::{thread, time::Duration};
 
+const SAND_X: i16 = 500;
+const SAND_Y: i16 = 0;
+
 #[derive(Debug)]
 enum PointType {
     Rock,
@@ -34,15 +37,13 @@ fn main() {
 
 fn part1(file: &'static str) -> usize {
     let mut points = parse_paths(file);
-    debug(&points);
-
-    let sand_x = 500;
-    let sand_y = 0;
+    //debug(&points);
 
     let mut sand_count = 0;
 
-    while is_air(&points, sand_x, sand_y) && !is_void(&points) {
-        let sand_point = Point::sand(sand_x, sand_y);
+    while is_air(&points, SAND_X, SAND_Y) && !is_void(&points) {
+        //thread::sleep(Duration::from_millis(100));
+        let sand_point = Point::sand(SAND_X, SAND_Y);
         points.push(sand_point);
 
         let mut i = 1;
@@ -50,14 +51,14 @@ fn part1(file: &'static str) -> usize {
         let l = points.len() - 1;
 
         loop {
-            if is_air(&points, sand_x + j, sand_y + i) {
+            if is_air(&points, SAND_X + j, SAND_Y + i) {
                 let p_m = points.get_mut(l).unwrap();
-                p_m.y = sand_y + i;
-                p_m.x = sand_x + j;
+                p_m.y = SAND_Y + i;
+                p_m.x = SAND_X + j;
                 i += 1;
-            } else if is_air(&points, sand_x + j - 1, sand_y + i) {
+            } else if is_air(&points, SAND_X + j - 1, SAND_Y + i) {
                 j -= 1;
-            } else if is_air(&points, sand_x + j + 1, sand_y + i) {
+            } else if is_air(&points, SAND_X + j + 1, SAND_Y + i) {
                 j += 1;
             } else {
                 let p_m = points.get_mut(l).unwrap();
@@ -68,8 +69,6 @@ fn part1(file: &'static str) -> usize {
             if is_void(&points) {
                 break;
             }
-
-            debug(&points);
         }
 
         debug(&points);
