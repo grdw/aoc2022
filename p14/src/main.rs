@@ -212,7 +212,7 @@ fn part2(file: &'static str) -> usize {
                 break;
             }
         }
-        debug(&points);
+        //debug(&points);
         sand_count += 1;
     }
 
