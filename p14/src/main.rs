@@ -1,4 +1,5 @@
 use std::fs;
+use std::{thread, time::Duration};
 
 #[derive(Debug)]
 enum PointType {
@@ -45,10 +46,9 @@ fn part1(file: &'static str) -> usize {
 
     let mut sand_count = 0;
 
-    while is_air(&points, sand_x, sand_y) {
+    while is_air(&points, sand_x, sand_y) && !is_void(&points) {
         let mut sand_point = Point::sand(sand_x, sand_y);
         points.push(sand_point);
-        debug(&points);
 
         let mut i = 1;
         let mut j = 0;
@@ -60,13 +60,17 @@ fn part1(file: &'static str) -> usize {
                 p_m.y = sand_y + i;
                 p_m.x = sand_x + j;
                 i += 1;
-            } else if is_air(&points, sand_x + j + 1, sand_y + i) {
-                j += 1;
             } else if is_air(&points, sand_x + j - 1, sand_y + i) {
                 j -= 1;
+            } else if is_air(&points, sand_x + j + 1, sand_y + i) {
+                j += 1;
             } else {
                 let p_m = points.get_mut(l).unwrap();
                 p_m.point_type = PointType::SandStale;
+                break;
+            }
+
+            if is_void(&points) {
                 break;
             }
 
@@ -74,19 +78,25 @@ fn part1(file: &'static str) -> usize {
         }
 
         debug(&points);
-
         sand_count += 1;
 
-        if sand_count == 22 {
-            break;
-        }
     }
 
-    0
+    sand_count - 1
 }
 
 fn is_air(points: &Points, x: i16, y: i16) -> bool {
     !points.iter().any(|n| n.x == x && n.y == y)
+}
+
+fn is_void(points: &Points) -> bool {
+    let mut max_y = 0;
+    let curr_sand = &points[points.len() - 1];
+    for p in &points[0..points.len()-1] {
+        if p.y > max_y { max_y = p.y }
+    }
+
+    max_y < curr_sand.y
 }
 
 fn debug(points: &Points) {
