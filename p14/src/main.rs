@@ -4,7 +4,6 @@ use std::{thread, time::Duration};
 #[derive(Debug)]
 enum PointType {
     Rock,
-    Air,
     Sand,
     SandStale
 }
@@ -19,10 +18,6 @@ struct Point {
 impl Point {
     fn rock(x: i16, y: i16) -> Point {
         Point { x: x, y: y, point_type: PointType::Rock }
-    }
-
-    fn air(x: i16, y: i16) -> Point {
-        Point { x: x, y: y, point_type: PointType::Air }
     }
 
     fn sand(x: i16, y: i16) -> Point {
@@ -47,7 +42,7 @@ fn part1(file: &'static str) -> usize {
     let mut sand_count = 0;
 
     while is_air(&points, sand_x, sand_y) && !is_void(&points) {
-        let mut sand_point = Point::sand(sand_x, sand_y);
+        let sand_point = Point::sand(sand_x, sand_y);
         points.push(sand_point);
 
         let mut i = 1;
@@ -114,9 +109,9 @@ fn debug(points: &Points) {
     // This is the grid
     let mut grid: Vec<Vec<char>> = vec![];
 
-    for y in min_y..=max_y {
+    for _ in min_y..=max_y {
         let mut sub_grid = vec![];
-        for x in min_x..=max_x {
+        for _ in min_x..=max_x {
             sub_grid.push('.');
         }
         grid.push(sub_grid);
@@ -126,8 +121,7 @@ fn debug(points: &Points) {
         let c = match p.point_type {
             PointType::Rock => '#',
             PointType::Sand => '+',
-            PointType::SandStale => 'o',
-            _ => ' '
+            PointType::SandStale => 'o'
         };
         grid[p.y as usize][(p.x - min_x) as usize] = c;
     }
