@@ -37,12 +37,14 @@ fn main() {
 
 fn part1(file: &'static str) -> usize {
     let mut points = parse_paths(file);
-    //debug(&points);
-
     let mut sand_count = 0;
+    let mut max_y = 0;
 
-    while is_air(&points, SAND_X, SAND_Y) && !is_void(&points) {
-        //thread::sleep(Duration::from_millis(100));
+    for p in &points[0..points.len()-1] {
+        if p.y > max_y { max_y = p.y }
+    }
+
+    while is_air(&points, SAND_X, SAND_Y) && !is_void(&points, max_y) {
         let sand_point = Point::sand(SAND_X, SAND_Y);
         points.push(sand_point);
 
@@ -66,14 +68,12 @@ fn part1(file: &'static str) -> usize {
                 break;
             }
 
-            if is_void(&points) {
+            if is_void(&points, max_y) {
                 break;
             }
         }
-
-        debug(&points);
+        //debug(&points);
         sand_count += 1;
-
     }
 
     sand_count - 1
@@ -83,12 +83,8 @@ fn is_air(points: &Points, x: i16, y: i16) -> bool {
     !points.iter().any(|n| n.x == x && n.y == y)
 }
 
-fn is_void(points: &Points) -> bool {
-    let mut max_y = 0;
+fn is_void(points: &Points, max_y: i16) -> bool {
     let curr_sand = &points[points.len() - 1];
-    for p in &points[0..points.len()-1] {
-        if p.y > max_y { max_y = p.y }
-    }
 
     max_y < curr_sand.y
 }
