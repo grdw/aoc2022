@@ -7,8 +7,7 @@ const SAND_Y: i16 = 0;
 #[derive(Debug)]
 enum PointType {
     Rock,
-    Sand,
-    SandStale
+    Sand
 }
 
 #[derive(Debug)]
@@ -45,7 +44,8 @@ fn part1(file: &'static str) -> usize {
     }
 
     while is_air(&points, SAND_X, SAND_Y) && !is_void(&points, max_y) {
-        let sand_point = Point::sand(SAND_X, SAND_Y);
+        let y = lowest_y(&points);
+        let sand_point = Point::sand(SAND_X, SAND_Y + y);
         points.push(sand_point);
 
         let mut i = 1;
@@ -63,8 +63,6 @@ fn part1(file: &'static str) -> usize {
             } else if is_air(&points, SAND_X + j + 1, SAND_Y + i) {
                 j += 1;
             } else {
-                let p_m = points.get_mut(l).unwrap();
-                p_m.point_type = PointType::SandStale;
                 break;
             }
 
@@ -77,6 +75,15 @@ fn part1(file: &'static str) -> usize {
     }
 
     sand_count - 1
+}
+
+fn lowest_y(points: &Points) -> i16 {
+    points
+        .iter()
+        .filter(|&n| n.x == SAND_X)
+        .map(|n| n.y)
+        .min()
+        .unwrap() - 1
 }
 
 fn is_air(points: &Points, x: i16, y: i16) -> bool {
@@ -115,8 +122,7 @@ fn debug(points: &Points) {
     for p in points {
         let c = match p.point_type {
             PointType::Rock => '#',
-            PointType::Sand => '+',
-            PointType::SandStale => 'o'
+            PointType::Sand => '+'
         };
         grid[p.y as usize][(p.x - min_x) as usize] = c;
     }
@@ -173,10 +179,52 @@ fn parse_paths(file: &'static str) -> Points {
 }
 
 fn part2(file: &'static str) -> usize {
-    0
+    let mut points = parse_paths(file);
+    let mut sand_count = 0;
+    let mut max_y = 0;
+
+    for p in &points[0..points.len()-1] {
+        if p.y > max_y { max_y = p.y }
+    }
+
+    max_y += 2;
+
+    while is_air_f(&points, SAND_X, SAND_Y, max_y) {
+        let y = lowest_y(&points);
+        let sand_point = Point::sand(SAND_X, SAND_Y + y);
+        points.push(sand_point);
+
+        let mut i = 1;
+        let mut j = 0;
+        let l = points.len() - 1;
+
+        loop {
+            if is_air_f(&points, SAND_X + j, SAND_Y + i, max_y) {
+                let p_m = points.get_mut(l).unwrap();
+                p_m.y = SAND_Y + i;
+                p_m.x = SAND_X + j;
+                i += 1;
+            } else if is_air_f(&points, SAND_X + j - 1, SAND_Y + i, max_y) {
+                j -= 1;
+            } else if is_air_f(&points, SAND_X + j + 1, SAND_Y + i, max_y) {
+                j += 1;
+            } else {
+                break;
+            }
+        }
+        debug(&points);
+        sand_count += 1;
+    }
+
+    sand_count
+}
+
+fn is_air_f(points: &Points, x: i16, y: i16, max_y: i16) -> bool {
+    if y == max_y { return false }
+    !points.iter().any(|n| n.x == x && n.y == y)
 }
 
 #[test]
 fn test_part2() {
-    assert_eq!(part2("test_input"), 24);
+    assert_eq!(part2("test_input"), 93);
 }
