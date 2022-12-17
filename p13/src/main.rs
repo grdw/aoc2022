@@ -15,8 +15,9 @@ fn part1(file: &'static str) -> usize {
         let (left, right) = group.split_once("\n").unwrap();
         let l_tree = gnode::parse_tree(left);
         let r_tree = gnode::parse_tree(right);
-        let mut ordered = 0;
         let j = i + 1;
+
+        let mut ordered = 0;
         println!("\n 🌿 PAIR: {}", j);
         traverse(&l_tree, &r_tree, &mut ordered);
 
@@ -40,16 +41,12 @@ fn test_part1() {
 }
 
 fn traverse(l: &GNode, r: &GNode, ordered: &mut u8) {
-    println!("{:?} {:?}", l.value, r.value);
+    println!("🥁 {:?} {:?}", l.value, r.value);
     match (&l.value, &r.value) {
         (NType::Value(l_val), NType::Value(r_val)) => {
-            if l_val < r_val {
-                *ordered = 2;
-            } else if l_val == r_val {
-                *ordered = 0;
-            } else {
-                *ordered = 1;
-            }
+            *ordered = if l_val < r_val { 2 }
+                       else if l_val == r_val { 0 }
+                       else { 1 }
         },
         (NType::Value(l_val), NType::List) => {
             let mut l_list = GNode::list();
@@ -64,6 +61,9 @@ fn traverse(l: &GNode, r: &GNode, ordered: &mut u8) {
             traverse(l, &r_list, ordered)
         },
         (NType::List, NType::List) => {
+            //l.debug(0);
+            //println!("~~~~");
+            //r.debug(0);
             let mut i = 0;
             loop {
                 match (l.children.get(i), r.children.get(i)) {
@@ -74,9 +74,17 @@ fn traverse(l: &GNode, r: &GNode, ordered: &mut u8) {
                             break;
                         }
                     },
-                    (None, Some(rc)) => *ordered = 2,
+                    (Some(_lc), None) => {
+                        println!("{}", "NO LEFT");
+                        *ordered = 1;
+                        break;
+                    },
+                    (None, Some(_rc)) => {
+                        println!("{}", "NO RIGHT");
+                        *ordered = 2;
+                        break;
+                    },
                     (None, None) => break,
-                    (_, _) => ()
                 }
                 i += 1
             }
@@ -122,43 +130,34 @@ fn test_traverse_lists_in_lists_right_empty() {
     let mut ordered = 0;
 
     traverse(&l_tree, &r_tree, &mut ordered);
-    assert_eq!(ordered, 0)
-}
-
-#[test]
-fn test_traverse_example_reddit_1() {
-    let l_tree = gnode::parse_tree("[[1,2],4]");
-    let r_tree = gnode::parse_tree("[[1,2],3]");
-    let mut ordered = 0;
-
-    traverse(&l_tree, &r_tree, &mut ordered);
     assert_eq!(ordered, 1)
 }
 
-// [[1,4,6,[]]]
-// [[1,3],[2],[6,6,0,[5,[],9]],[[2,[1,4,5],[6],[5,10,9,4]],[7,4,6,[2,6,8,9],[5,6]],[[8],[]],[[9,5,6],[]],8],[[0,[2,9,6,3],[5,3]]]]
-// :Incorrect
 #[test]
-fn test_traverse_example_reddit_2() {
-    let l_tree = gnode::parse_tree("[[1,4,6,[]]]");
-    let r_tree = gnode::parse_tree("[[1,3],[2],[6,6,0,[5,[],9]],[[2,[1,4,5],[6],[5,10,9,4]],[7,4,6,[2,6,8,9],[5,6]],[[8],[]],[[9,5,6],[]],8],[[0,[2,9,6,3],[5,3]]]]");
+fn test_traverse_examples_reddit_1() {
+    let l_tree = gnode::parse_tree("[[1,5,11]]");
+    let r_tree = gnode::parse_tree("[[]]");
     let mut ordered = 0;
 
     traverse(&l_tree, &r_tree, &mut ordered);
-    assert_eq!(ordered, 1)
+    assert_eq!(ordered, 1); // 1 = unordered
 }
 
-// [[4,2,[[4,3],2,[4,5,5,1,1]]],[[8,[7],[9,7],4,[0,3,8,6]],0],[5],[2,2,[10,10,[3,6,10,2,5],[],0]]]
-// [[[[6,3,2,2,6],1,[0,2,5,9,4],[6],[2]],9,[7,3]],[[[7],7,4,2,2],5,6,[3],3]]
-// :Correct
 #[test]
-fn test_traverse_example_reddit_3() {
-    let l_tree = gnode::parse_tree("[[4,2,[[4,3],2,[4,5,5,1,1]]],[[8,[7],[9,7],4,[0,3,8,6]],0],[5],[2,2,[10,10,[3,6,10,2,5],[],0]]]");
-    let r_tree = gnode::parse_tree("[[[[6,3,2,2,6],1,[0,2,5,9,4],[6],[2]],9,[7,3]],[[[7],7,4,2,2],5,6,[3],3]]");
+fn test_traverse_examples_reddit_2() {
+    let l_tree = gnode::parse_tree("[[[[7],[2,5],[4,1,10,9]],[[],[6,0,2,1],[0],[7,0],9],8,[6],9],[4,[],[]],[2]]");
+    let r_tree = gnode::parse_tree("[[7],[[6,6]]]");
     let mut ordered = 0;
 
     traverse(&l_tree, &r_tree, &mut ordered);
-    assert_eq!(ordered, 2)
+    assert_eq!(ordered, 1); // 1 = unordered
+
+    let l_tree = gnode::parse_tree("[[1,[2,[10,8,2,1,1]],0]]");
+    let r_tree = gnode::parse_tree("[[[1]],[[[2,4,10,2],[]],3,8],[9,3,[5,[3,0],[0],[4]],6,[[9,8,3,7],4,[10,10,8],10,[6,6]]],[[[3],7,[],[10,5]],0],[5,[[3,9,0,2,1],0,[4,5,2],[6]]]]");
+    let mut ordered = 0;
+
+    traverse(&l_tree, &r_tree, &mut ordered);
+    assert_eq!(ordered, 1) // 1 = unordered
 }
 
 fn part2(file: &'static str) -> usize {
