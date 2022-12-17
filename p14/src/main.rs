@@ -55,14 +55,14 @@ fn part1(file: &'static str) -> usize {
 }
 
 fn is_air_lines_v(lines: &Lines, points: &Points, x: i16, y: i16, max_y: i16) -> bool {
-    let n = if points.is_empty() {
+    let not_void = if points.is_empty() {
         true
     } else {
         let curr_sand = &points[points.len() - 1];
         max_y >= curr_sand.y
     };
 
-    n && is_air_lines(lines, points, x, y)
+    not_void && is_air_lines(lines, points, x, y)
 }
 
 fn is_air_lines(lines: &Lines, points: &Points, x: i16, y: i16) -> bool {
@@ -78,58 +78,15 @@ fn test_part1() {
     assert_eq!(part1("test_input"), 24);
 }
 
-fn parse_lines(file: &'static str) -> Lines {
-    let file = fs::read_to_string(file).unwrap();
-    let mut lines: Lines = vec![];
-
-    for path in file.split_terminator("\n") {
-        let paths: Vec<&str> = path.split(" -> ").collect();
-
-        for i in 0..paths.len()-1 {
-            let coord_start = paths[i];
-            let coord_end = paths[i + 1];
-            let (fx, fy) = coord_start.split_once(",").unwrap();
-            let (ex, ey) = coord_end.split_once(",").unwrap();
-
-            let pfx = fx.parse::<i16>().unwrap();
-            let pfy = fy.parse::<i16>().unwrap();
-            let pex = ex.parse::<i16>().unwrap();
-            let pey = ey.parse::<i16>().unwrap();
-
-            let (rsx, rex) = if pfx <= pex {
-                (pfx, pex)
-            } else {
-                (pex, pfx)
-            };
-
-            let (rsy, rey) = if pfy <= pey {
-                (pfy, pey)
-            } else {
-                (pey, pfy)
-            };
-
-            lines.push(
-                Line {
-                    start: LinePoint {
-                        x: rsx,
-                        y: rsy
-                    },
-
-                    end: LinePoint {
-                        x: rex,
-                        y: rey
-                    }
-                }
-            );
-        }
-    }
-    lines
-}
-
 fn part2(file: &'static str) -> usize {
     let lines = parse_lines(file);
 
     drop_sand(&lines, is_air_lines_f)
+}
+
+#[test]
+fn test_part2() {
+    assert_eq!(part2("test_input"), 93);
 }
 
 fn is_air_lines_f(lines: &Lines, points: &Points, x: i16, y: i16, max_y: i16) -> bool {
@@ -138,7 +95,10 @@ fn is_air_lines_f(lines: &Lines, points: &Points, x: i16, y: i16, max_y: i16) ->
     is_air_lines(lines, points, x, y)
 }
 
-fn drop_sand(lines: &Lines, is_air: fn(&Lines, &Points, i16, i16, i16) -> bool) -> usize {
+fn drop_sand(
+    lines: &Lines,
+    is_air: fn(&Lines, &Points, i16, i16, i16) -> bool) -> usize {
+
     let mut sand_count = 0;
     let mut points = vec![];
     let max_y = highest_y(&lines) + 2;
@@ -171,7 +131,49 @@ fn drop_sand(lines: &Lines, is_air: fn(&Lines, &Points, i16, i16, i16) -> bool) 
     sand_count
 }
 
-#[test]
-fn test_part2() {
-    assert_eq!(part2("test_input"), 93);
+fn parse_lines(file: &'static str) -> Lines {
+    let file = fs::read_to_string(file).unwrap();
+    let mut lines: Lines = vec![];
+
+    for path in file.split_terminator("\n") {
+        let paths: Vec<&str> = path.split(" -> ").collect();
+
+        for i in 0..paths.len()-1 {
+            let (pfx, pfy) = to_coords(paths[i]);
+            let (pex, pey) = to_coords(paths[i + 1]);
+            let (rsx, rex) = max_t(pfx, pex);
+            let (rsy, rey) = max_t(pfy, pey);
+
+            lines.push(
+                Line {
+                    start: LinePoint {
+                        x: rsx,
+                        y: rsy
+                    },
+
+                    end: LinePoint {
+                        x: rex,
+                        y: rey
+                    }
+                }
+            );
+        }
+    }
+    lines
+}
+
+fn max_t(x1: i16, x2: i16) -> (i16, i16) {
+    if x1 <= x2 {
+        (x1, x2)
+    } else {
+        (x2, x1)
+    }
+}
+
+fn to_coords(coord: &str) -> (i16, i16) {
+    let (x, y) = coord.split_once(",").unwrap();
+    let px = x.parse::<i16>().unwrap();
+    let py = y.parse::<i16>().unwrap();
+
+    (px, py)
 }
