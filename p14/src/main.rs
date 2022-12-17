@@ -4,7 +4,7 @@ use std::collections::HashSet;
 const SAND_X: i16 = 500;
 const SAND_Y: i16 = 0;
 
-#[derive(Debug, Eq, PartialEq, Hash)]
+#[derive(Debug)]
 struct Point {
     x: i16,
     y: i16
@@ -25,7 +25,14 @@ struct LinePoint {
 #[derive(Debug)]
 struct Line { start: LinePoint, end: LinePoint }
 
-type Points = HashSet<Point>;
+impl Line {
+    pub fn fits(&self, x: i16, y: i16) -> bool {
+        (self.start.x..=self.end.x).contains(&x) &&
+        (self.start.y..=self.end.y).contains(&y)
+    }
+}
+
+type Points = HashSet<(i16, i16)>;
 type Lines = Vec<Line>;
 
 fn main() {
@@ -37,10 +44,6 @@ fn highest_y(lines: &Lines) -> i16 {
     let mut max_y = 0;
 
     for l in lines {
-        if l.start.y > max_y {
-            max_y = l.start.y
-        }
-
         if l.end.y > max_y {
             max_y = l.end.y
         }
@@ -69,11 +72,9 @@ fn is_air_lines_v(
 }
 
 fn is_air_lines(lines: &Lines, points: &Points, x: i16, y: i16) -> bool {
-    let p = Point::new(x, y);
-    !points.contains(&p) &&
-    !lines.iter().any(|l|
-        (l.start.x..=l.end.x).contains(&x) &&
-        (l.start.y..=l.end.y).contains(&y)
+    !(
+        points.contains(&(x, y)) ||
+        lines.iter().any(|l| l.fits(x, y))
     )
 }
 
@@ -134,7 +135,7 @@ fn drop_sand(
             }
         }
 
-        points.insert(sand_point);
+        points.insert((sand_point.x, sand_point.y));
         prev_y = SAND_Y + i;
         sand_count += 1;
     }
