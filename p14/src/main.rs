@@ -44,7 +44,6 @@ fn part1(file: &'static str) -> usize {
     let sand_y = 0;
 
     let mut sand_count = 0;
-    let transposes = vec![(0, 0), (-1, 1), (1, 1)];
 
     while is_air(&points, sand_x, sand_y) {
         let mut sand_point = Point::sand(sand_x, sand_y);
@@ -54,7 +53,6 @@ fn part1(file: &'static str) -> usize {
         let mut i = 1;
         let mut j = 0;
         let l = points.len() - 1;
-        let (t_x, t_y) = transposes[sand_count % transposes.len()];
 
         loop {
             if is_air(&points, sand_x + j, sand_y + i) {
@@ -62,14 +60,11 @@ fn part1(file: &'static str) -> usize {
                 p_m.y = sand_y + i;
                 p_m.x = sand_x + j;
                 i += 1;
+            } else if is_air(&points, sand_x + j + 1, sand_y + i) {
+                j += 1;
+            } else if is_air(&points, sand_x + j - 1, sand_y + i) {
+                j -= 1;
             } else {
-                j += t_x;
-            }
-
-            if !is_air(&points, sand_x + j, sand_y + i) &&
-               !is_air(&points, sand_x + j + 1, sand_y + i) &&
-               !is_air(&points, sand_x + j - 1, sand_y + i) {
-
                 let p_m = points.get_mut(l).unwrap();
                 p_m.point_type = PointType::SandStale;
                 break;
@@ -82,7 +77,7 @@ fn part1(file: &'static str) -> usize {
 
         sand_count += 1;
 
-        if sand_count == 5 {
+        if sand_count == 22 {
             break;
         }
     }
