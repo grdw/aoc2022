@@ -17,13 +17,7 @@ impl Point {
 }
 
 #[derive(Debug)]
-struct LinePoint {
-    x: i16,
-    y: i16
-}
-
-#[derive(Debug)]
-struct Line { start: LinePoint, end: LinePoint }
+struct Line { start: Point, end: Point }
 
 impl Line {
     pub fn fits(&self, x: i16, y: i16) -> bool {
@@ -158,12 +152,12 @@ fn parse_lines(file: &'static str) -> Lines {
 
             lines.push(
                 Line {
-                    start: LinePoint {
+                    start: Point {
                         x: rsx,
                         y: rsy
                     },
 
-                    end: LinePoint {
+                    end: Point {
                         x: rex,
                         y: rey
                     }
