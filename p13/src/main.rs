@@ -61,9 +61,6 @@ fn traverse(l: &GNode, r: &GNode, ordered: &mut u8) {
             traverse(l, &r_list, ordered)
         },
         (NType::List, NType::List) => {
-            //l.debug(0);
-            //println!("~~~~");
-            //r.debug(0);
             let mut i = 0;
             loop {
                 match (l.children.get(i), r.children.get(i)) {
@@ -75,12 +72,10 @@ fn traverse(l: &GNode, r: &GNode, ordered: &mut u8) {
                         }
                     },
                     (Some(_lc), None) => {
-                        println!("{}", "NO LEFT");
                         *ordered = 1;
                         break;
                     },
                     (None, Some(_rc)) => {
-                        println!("{}", "NO RIGHT");
                         *ordered = 2;
                         break;
                     },
