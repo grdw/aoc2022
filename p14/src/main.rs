@@ -54,7 +54,13 @@ fn part1(file: &'static str) -> usize {
     drop_sand(&lines, is_air_lines_v) - 1
 }
 
-fn is_air_lines_v(lines: &Lines, points: &Points, x: i16, y: i16, max_y: i16) -> bool {
+fn is_air_lines_v(
+    lines: &Lines,
+    points: &Points,
+    x: i16,
+    y: i16,
+    max_y: i16) -> bool {
+
     let not_void = if points.is_empty() {
         true
     } else {
@@ -89,7 +95,13 @@ fn test_part2() {
     assert_eq!(part2("test_input"), 93);
 }
 
-fn is_air_lines_f(lines: &Lines, points: &Points, x: i16, y: i16, max_y: i16) -> bool {
+fn is_air_lines_f(
+    lines: &Lines,
+    points: &Points,
+    x: i16,
+    y: i16,
+    max_y: i16) -> bool {
+
     if y == max_y { return false }
 
     is_air_lines(lines, points, x, y)
