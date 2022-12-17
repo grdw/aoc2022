@@ -1,6 +1,7 @@
 mod gnode;
 
 use std::fs;
+use std::cmp::Ordering;
 use gnode::{GNode, NType};
 
 fn main() {
@@ -41,7 +42,6 @@ fn test_part1() {
 }
 
 fn traverse(l: &GNode, r: &GNode, ordered: &mut u8) {
-    println!("🥁 {:?} {:?}", l.value, r.value);
     match (&l.value, &r.value) {
         (NType::Value(l_val), NType::Value(r_val)) => {
             *ordered = if l_val < r_val { 2 }
@@ -156,5 +156,44 @@ fn test_traverse_examples_reddit_2() {
 }
 
 fn part2(file: &'static str) -> usize {
-    0
+    let parsed = fs::read_to_string(file).unwrap();
+    let mut trees: Vec<GNode> = vec![
+        gnode::parse_tree("[[2]]"),
+        gnode::parse_tree("[[6]]")
+    ];
+
+    for (i, group) in parsed.split_terminator("\n\n").enumerate() {
+        let (left, right) = group.split_once("\n").unwrap();
+        let l_tree = gnode::parse_tree(left);
+        let r_tree = gnode::parse_tree(right);
+        trees.push(l_tree);
+        trees.push(r_tree);
+    }
+
+    trees.sort_by(|a, b| {
+        let mut ordered = 0;
+        traverse(&a, &b, &mut ordered);
+        match ordered {
+            0 => Ordering::Equal,
+            2 => Ordering::Less,
+            1 => Ordering::Greater,
+            _ => panic!("Invalid order")
+        }
+    });
+
+    "26"
+        .chars()
+        .map(|i| {
+            let div = format!("[[{}]]", i);
+            1 + trees
+                .iter()
+                .position(|x| x == &gnode::parse_tree(&div))
+                .unwrap()
+        })
+        .product()
+}
+
+#[test]
+fn test_part2() {
+    assert_eq!(part2("test_input"), 140)
 }
