@@ -78,7 +78,6 @@ fn debug(grid: &Grid) {
 
 fn count_bonqs(pairs: &PointPairs, pos: usize) -> usize {
     let mut bonq_counts = HashSet::new();
-    let mut grid: Grid = vec![];
     let mut min_y = i32::MAX;
     let mut max_y = 0;
     let mut min_x = i32::MAX;
@@ -108,21 +107,40 @@ fn count_bonqs(pairs: &PointPairs, pos: usize) -> usize {
             (beacon.x - sensor.x).abs() +
             (beacon.y - sensor.y).abs();
 
-        println!("AAAAAAA");
-        let coords = get_diamond_coords(sx, sy, dist);
+        println!("AAAAAAA {}", dist);
+        let mut ty = -(dist as isize);
+        let top = 0..=dist;
+        let bottom = (0..=dist-1).rev();
+
         println!("BBBBBBB");
-        for (cx, cy) in coords {
-            if cx >= w || cy >= h {
-                continue
+        for i in top.chain(bottom) {
+            for n in -i..=i {
+                let cx = (sx as isize) + (n as isize);
+                let cy = ty + (sy as isize);
+
+                // If out of range
+                if cx < 0 || cy < 0 ||
+                   cx >= w as isize || cy >= h as isize {
+                    continue
+                }
+
+                // If it hits a scanner
+                if cx == sx as isize && cy == sy as isize {
+                    continue
+                };
+
+                // If it hits a beacon
+                if cx == bx as isize && cy == by as isize {
+                    continue
+                };
+
+                if cy == (pos as isize) {
+                    bonq_counts.insert((cx, cy));
+                }
             }
 
-            if cy == pos {
-                bonq_counts.insert((cx, cy));
-            }
+            ty += 1;
         }
-
-        bonq_counts.remove(&(sx, sy));
-        bonq_counts.remove(&(bx, by));
     }
 
     bonq_counts.len()
@@ -162,32 +180,4 @@ fn draw_diamond(size: usize) {
         }
         println!("");
     }
-}
-
-fn get_diamond_coords(
-    x: usize,
-    y: usize,
-    size: i32) -> Vec<(usize, usize)> {
-
-    //draw_diamond(size as usize);
-    let mut coords = vec![];
-    let mut ty = -(size as isize);
-    let top = 0..=size;
-    let bottom = (0..=size-1).rev();
-
-    for i in top.chain(bottom) {
-        for n in -i..=i {
-            let cx = (x as isize) + (n as isize);
-            let cy = ty + (y as isize);
-
-            if cx < 0 || cy < 0 {
-                continue
-            }
-
-            coords.push((cx as usize, cy as usize));
-        }
-        ty += 1;
-    }
-
-    coords
 }
