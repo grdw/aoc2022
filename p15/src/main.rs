@@ -76,6 +76,7 @@ fn debug(grid: &Grid) {
     }
 }
 
+// Fucking nightmare code
 fn count_bonqs(pairs: &PointPairs, pos: usize) -> usize {
     let mut bonq_counts: HashSet<(isize, isize)> = HashSet::new();
     let mut min_y = i32::MAX;
@@ -103,13 +104,11 @@ fn count_bonqs(pairs: &PointPairs, pos: usize) -> usize {
         let by = beacon.y;
         let bx = beacon.x;
 
-        let dist =
-            (beacon.x - sensor.x).abs() +
-            (beacon.y - sensor.y).abs();
-
-        let mut ty = -(dist as isize);
+        let dist = (bx - sx).abs() + (by - sy).abs();
         let top = 0..=dist;
         let bottom = (0..=dist-1).rev();
+
+        let mut ty = -(dist as isize);
 
         for i in top.chain(bottom) {
             let range = -i..=i;
