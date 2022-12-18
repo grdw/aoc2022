@@ -97,13 +97,11 @@ fn count_bonqs(pairs: &PointPairs, pos: usize) -> usize {
     let h = (max_y - min_y) as usize;
     let w = (max_x - min_x) as usize + 1;
 
-    println!("{} {}", w, h);
-
     for (sensor, beacon) in pairs {
-        let sy = (sensor.y - min_y) as usize;
-        let sx = (sensor.x - min_x) as usize;
-        let by = (beacon.y - min_y) as usize;
-        let bx = (beacon.x - min_x) as usize;
+        let sy = sensor.y;
+        let sx = sensor.x;
+        let by = beacon.y;
+        let bx = beacon.x;
 
         let dist =
             (beacon.x - sensor.x).abs() +
@@ -113,7 +111,6 @@ fn count_bonqs(pairs: &PointPairs, pos: usize) -> usize {
         let top = 0..=dist;
         let bottom = (0..=dist-1).rev();
 
-        println!("AAAAAAAA {}", dist);
         for i in top.chain(bottom) {
             let range = -i..=i;
             let cy = ty + (sy as isize);
