@@ -11,17 +11,17 @@ enum PointType {
 
 #[derive(Debug)]
 struct Point {
-    x: i32,
-    y: i32,
+    x: i64,
+    y: i64,
     t: PointType
 }
 
 impl Point {
-    fn sensor(x: i32, y: i32) -> Point {
+    fn sensor(x: i64, y: i64) -> Point {
         Point { x: x, y: y, t: PointType::Sensor }
     }
 
-    fn beacon(x: i32, y: i32) -> Point {
+    fn beacon(x: i64, y: i64) -> Point {
         Point { x: x, y: y, t: PointType::Beacon }
     }
 }
@@ -33,7 +33,7 @@ fn main() {
     println!("P2: {}", part2("input", 4_000_000));
 }
 
-fn part1(file: &'static str, pos: usize) -> usize {
+fn part1(file: &'static str, pos: usize) -> i64 {
     let pairs = parse(file);
     count_bonqs(&pairs, pos)
 }
@@ -44,7 +44,7 @@ fn test_part1() {
 }
 
 // Fucking nightmare code
-fn count_bonqs(pairs: &PointPairs, pos: usize) -> usize {
+fn count_bonqs(pairs: &PointPairs, pos: usize) -> i64 {
     let mut lines = vec![];
 
     for (sensor, beacon) in pairs {
@@ -76,10 +76,10 @@ fn count_bonqs(pairs: &PointPairs, pos: usize) -> usize {
         merge(&mut lines);
     }
 
-    (lines[0].0..lines[0].1).len()
+    lines[0].0.abs() + lines[0].1.abs()
 }
 
-fn line_squash(lines: &mut Vec<(i32, i32)>, point: (i32, i32)) {
+fn line_squash(lines: &mut Vec<(i64, i64)>, point: (i64, i64)) {
     let len = lines.len();
 
     for i in 0..len {
@@ -103,15 +103,15 @@ fn line_squash(lines: &mut Vec<(i32, i32)>, point: (i32, i32)) {
     lines.push(point);
 }
 
-fn is_wrapped(p1: &(i32, i32), p2: &(i32, i32)) -> bool {
+fn is_wrapped(p1: &(i64, i64), p2: &(i64, i64)) -> bool {
     p1.0 >= p2.0 && p1.1 <= p2.1
 }
 
-fn is_start(x: i32, p: &(i32, i32)) -> bool {
+fn is_start(x: i64, p: &(i64, i64)) -> bool {
     x <= p.1 && x >= p.0
 }
 
-fn merge(lines: &mut Vec<(i32, i32)>) {
+fn merge(lines: &mut Vec<(i64, i64)>) {
     lines.sort();
 
     let len = lines.len();
@@ -209,7 +209,7 @@ fn test_line_squash() {
     assert_eq!(lines[0], (0, 10));
 }
 
-fn part2(file: &'static str, max: isize) -> i32 {
+fn part2(file: &'static str, max: isize) -> i64 {
     let pairs = parse(file);
     tuning_frequency(&pairs, max)
 }
@@ -219,8 +219,8 @@ fn test_part2() {
     assert_eq!(part2("test_input", 20), 56000011);
 }
 
-fn tuning_frequency(pairs: &PointPairs, max: isize) -> i32 {
-    let mut m: HashMap<isize, Vec<(i32, i32)>> = HashMap::new();
+fn tuning_frequency(pairs: &PointPairs, max: isize) -> i64 {
+    let mut m: HashMap<isize, Vec<(i64, i64)>> = HashMap::new();
     let mut tuning_frequency = 0;
 
     for (sensor, beacon) in pairs {
@@ -245,7 +245,7 @@ fn tuning_frequency(pairs: &PointPairs, max: isize) -> i32 {
             }
 
             let cxs = cmp::max(-i + sx, 0);
-            let cxe = cmp::min(i + sx, max as i32) + 1;
+            let cxe = cmp::min(i + sx, max as i64) + 1;
 
             m.entry(cy)
                 .and_modify(|mut v| {
@@ -256,10 +256,10 @@ fn tuning_frequency(pairs: &PointPairs, max: isize) -> i32 {
         }
     }
 
-    m.retain(|_, val| val[0] != (0, (max as i32) + 1));
+    m.retain(|_, val| val[0] != (0, (max as i64) + 1));
 
     for (y, x_lines) in m {
-        tuning_frequency = x_lines[0].1 * 4_000_000 + (y as i32)
+        tuning_frequency = x_lines[0].1 * 4_000_000 + (y as i64)
     }
     tuning_frequency
 }
@@ -306,8 +306,8 @@ fn parse(file: &'static str) -> PointPairs {
 
     contents.split_terminator("\n").map(|line| {
         let caps = re.captures(line).unwrap();
-        let coords: Vec<i32> = (1..=4)
-            .map(|n| caps[n].parse::<i32>().unwrap())
+        let coords: Vec<i64> = (1..=4)
+            .map(|n| caps[n].parse::<i64>().unwrap())
             .collect();
 
         (Point::sensor(coords[0], coords[1]),
