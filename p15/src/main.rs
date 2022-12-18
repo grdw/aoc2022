@@ -1,4 +1,5 @@
 use std::fs;
+use std::collections::HashSet;
 use regex::Regex;
 
 #[derive(Debug)]
@@ -35,9 +36,7 @@ fn main() {
 
 fn part1(file: &'static str, pos: usize) -> usize {
     let pairs = parse(file);
-    let grid = to_grid(&pairs);
-    debug(&grid);
-    grid[pos].iter().filter(|&&n| n == '#').count()
+    count_bonqs(&pairs, pos)
 }
 
 #[test]
@@ -77,7 +76,8 @@ fn debug(grid: &Grid) {
     }
 }
 
-fn to_grid(pairs: &PointPairs) -> Grid {
+fn count_bonqs(pairs: &PointPairs, pos: usize) -> usize {
+    let mut bonq_counts = HashSet::new();
     let mut grid: Grid = vec![];
     let mut min_y = i32::MAX;
     let mut max_y = 0;
@@ -95,18 +95,9 @@ fn to_grid(pairs: &PointPairs) -> Grid {
         if beacon.y < min_y { min_y = beacon.y }
     }
 
-    for _ in min_y..=max_y {
-        let mut s = vec![];
+    let h = (max_y - min_y) as usize;
+    let w = (max_x - min_x) as usize;
 
-        for _ in min_x..=max_x {
-            s.push('.');
-        }
-
-        grid.push(s);
-    }
-
-    let h = grid.len();
-    let w = grid[0].len();
     for (sensor, beacon) in pairs {
         let sy = (sensor.y - min_y) as usize;
         let sx = (sensor.x - min_x) as usize;
@@ -117,19 +108,24 @@ fn to_grid(pairs: &PointPairs) -> Grid {
             (beacon.x - sensor.x).abs() +
             (beacon.y - sensor.y).abs();
 
+        println!("AAAAAAA");
         let coords = get_diamond_coords(sx, sy, dist);
+        println!("BBBBBBB");
         for (cx, cy) in coords {
             if cx >= w || cy >= h {
                 continue
             }
-            grid[cy][cx] = '#';
+
+            if cy == pos {
+                bonq_counts.insert((cx, cy));
+            }
         }
 
-        grid[sy][sx] = 'S';
-        grid[by][bx] = 'B';
+        bonq_counts.remove(&(sx, sy));
+        bonq_counts.remove(&(bx, by));
     }
 
-    grid
+    bonq_counts.len()
 }
 
 // A little helper method that draws pixel diamonds
