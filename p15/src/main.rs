@@ -77,7 +77,7 @@ fn debug(grid: &Grid) {
 }
 
 fn count_bonqs(pairs: &PointPairs, pos: usize) -> usize {
-    let mut bonq_counts = HashSet::new();
+    let mut bonq_counts: HashSet<(isize, isize)> = HashSet::new();
     let mut min_y = i32::MAX;
     let mut max_y = 0;
     let mut min_x = i32::MAX;
@@ -95,7 +95,9 @@ fn count_bonqs(pairs: &PointPairs, pos: usize) -> usize {
     }
 
     let h = (max_y - min_y) as usize;
-    let w = (max_x - min_x) as usize;
+    let w = (max_x - min_x) as usize + 1;
+
+    println!("{} {}", w, h);
 
     for (sensor, beacon) in pairs {
         let sy = (sensor.y - min_y) as usize;
@@ -107,22 +109,22 @@ fn count_bonqs(pairs: &PointPairs, pos: usize) -> usize {
             (beacon.x - sensor.x).abs() +
             (beacon.y - sensor.y).abs();
 
-        println!("AAAAAAA {}", dist);
         let mut ty = -(dist as isize);
         let top = 0..=dist;
         let bottom = (0..=dist-1).rev();
 
-        println!("BBBBBBB");
+        println!("AAAAAAAA {}", dist);
         for i in top.chain(bottom) {
-            for n in -i..=i {
-                let cx = (sx as isize) + (n as isize);
-                let cy = ty + (sy as isize);
+            let range = -i..=i;
+            let cy = ty + (sy as isize);
+            ty += 1;
 
-                // If out of range
-                if cx < 0 || cy < 0 ||
-                   cx >= w as isize || cy >= h as isize {
-                    continue
-                }
+            if cy != (pos as isize) {
+                continue
+            }
+
+            for n in range {
+                let cx = (sx as isize) + (n as isize);
 
                 // If it hits a scanner
                 if cx == sx as isize && cy == sy as isize {
@@ -138,8 +140,6 @@ fn count_bonqs(pairs: &PointPairs, pos: usize) -> usize {
                     bonq_counts.insert((cx, cy));
                 }
             }
-
-            ty += 1;
         }
     }
 
