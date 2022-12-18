@@ -35,14 +35,9 @@ fn main() {
 
 fn part1(file: &'static str, pos: usize) -> usize {
     let pairs = parse(file);
-    //let grid = to_grid(&pairs);
-    draw_diamond(1);
-    draw_diamond(2);
-    draw_diamond(3);
-    draw_diamond(4);
-    draw_diamond(5);
-    //debug(&grid);
-    0
+    let grid = to_grid(&pairs);
+    debug(&grid);
+    grid[pos].iter().filter(|&&n| n == '#').count()
 }
 
 #[test]
@@ -100,10 +95,10 @@ fn to_grid(pairs: &PointPairs) -> Grid {
         if beacon.y < min_y { min_y = beacon.y }
     }
 
-    for y in min_y..=max_y {
+    for _ in min_y..=max_y {
         let mut s = vec![];
 
-        for x in min_x..=max_x {
+        for _ in min_x..=max_x {
             s.push('.');
         }
 
@@ -118,137 +113,85 @@ fn to_grid(pairs: &PointPairs) -> Grid {
         let by = (beacon.y - min_y) as usize;
         let bx = (beacon.x - min_x) as usize;
 
-        let dist: usize = (
+        let dist =
             (beacon.x - sensor.x).abs() +
-            (beacon.y - sensor.y).abs()
-        ) as usize;
+            (beacon.y - sensor.y).abs();
 
-        println!("\n\n==== DEBUG START");
-        println!("-------- DISTANCE {:?}", dist);
-        let mut n = 1;
-        loop {
-            // 2 is arbitary right now but it could by any N
-            if n > dist {
-                break;
+        let coords = get_diamond_coords(sx, sy, dist);
+        for (cx, cy) in coords {
+            if cx >= w || cy >= h {
+                continue
             }
-
-            println!("-----");
-            println!("{}", n);
-
-            //if sy + n < h  {
-            //    grid[sy + n][sx] = '#'
-            //}
-
-            //if sy >= n {
-            //    grid[sy - n][sx] = '#'
-            //}
-
-            //if sx + n < w {
-            //    grid[sy][sx + n] = '#'
-            //}
-
-            //if sx >= n {
-            //    grid[sy][sx - n] = '#'
-            //}
-
-            for p in 0..n {
-                let tx = 1;
-                let ty = 1 + p;
-                println!("{} {}", tx, ty);
-                println!("-{} {}", tx, ty);
-                println!("{} -{}", tx, ty);
-                println!("-{} -{}", tx, ty);
-            }
-            //for m in 1..=n {
-            //    println!("-{}, {}", m, m);
-            //    println!("{}, -{}", m, m);
-            //    println!("{}, {}", m, m);
-            //    println!("-{}, -{}", m, m);
-            //    //if sy >= n {
-            //    //    grid[sy - m][sx - m] = '#';
-            //    //    grid[sy + m][sx - m] = '#';
-            //    //    grid[sy + m][sx + m] = '#';
-            //    //    grid[sy - m][sx + m] = '#';
-            //    //}
-            //}
-            //for tx in 0..=i {
-            //    //println!("COORD: {}", i, j);
-            //}
-            //(sensor.x - 1, sensor.y)
-            //(sensor.x + 1, sensor.y)
-            //(sensor.x, sensor.y)
-            //(sensor.x, sensor.y)
-            //
-            n += 1;
-
+            grid[cy][cx] = '#';
         }
 
         grid[sy][sx] = 'S';
         grid[by][bx] = 'B';
-
-        println!("S: ({},{}), B: ({},{})", sensor.x, sensor.y, beacon.x, beacon.y);
-        println!("Delta: ({},{})", sensor.x - beacon.x, sensor.y - beacon.y);
-
     }
 
     grid
 }
 
+// A little helper method that draws pixel diamonds
+// Thanks guy at this SO question: https://stackoverflow.com/questions/69681723/rhombus-with-letters-java
 fn draw_diamond(size: usize) {
-    //let g_size = 10;
-
-    // Makes a simple 10 by 10 grid:
-    //let mut v: Grid = vec![];
-    //for h in 0..=g_size {
-    //    let mut sub = vec![];
-    //    for w in 0..=g_size {
-    //        sub.push('.');
-    //    }
-    //    v.push(sub);
-    //}
-
-    // Draws the S in the middle;
-    //v[g_size / 2][g_size / 2] = 'S';
-
-    //for k in 0..size {
-    //    let l = ((size + 1) / 2) - k - 1;
-    //    println!("{}", l);
-    //    if l > 0 {
-    //        v[k][l] = '#';
-    //    }
-    //}
-
     for i in 0..=size {
-        let num_spaces = (size + 1) - i - 1;
-        for n in 0..num_spaces {
-            print!(" ");
+        let num_spaces = size - i;
+        for _ in 0..num_spaces {
+            print!(".");
         }
 
-        for k in (0..=i).rev() {
+        for _ in (0..=i).rev() {
             print!("#");
         }
 
-        for j in 1..=i {
+        for _ in 1..=i {
             print!("#");
         }
         println!("");
     }
 
     for i in (0..=size-1).rev() {
-        let num_spaces = (size + 1) - i - 1;
-        for n in 0..num_spaces {
-            print!(" ");
+        let num_spaces = size - i;
+        for _ in 0..num_spaces {
+            print!(".");
         }
 
-        for k in (0..=i).rev() {
+        for _ in (0..=i).rev() {
             print!("#");
         }
 
-        for j in 1..=i {
+        for _ in 1..=i {
             print!("#");
         }
         println!("");
     }
+}
 
-    //debug(&v);
+fn get_diamond_coords(
+    x: usize,
+    y: usize,
+    size: i32) -> Vec<(usize, usize)> {
+
+    //draw_diamond(size as usize);
+    let mut coords = vec![];
+    let mut ty = -(size as isize);
+    let top = 0..=size;
+    let bottom = (0..=size-1).rev();
+
+    for i in top.chain(bottom) {
+        for n in -i..=i {
+            let cx = (x as isize) + (n as isize);
+            let cy = ty + (y as isize);
+
+            if cx < 0 || cy < 0 {
+                continue
+            }
+
+            coords.push((cx as usize, cy as usize));
+        }
+        ty += 1;
+    }
+
+    coords
 }
