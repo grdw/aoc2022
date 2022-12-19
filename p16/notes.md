@@ -38,3 +38,7 @@ You start at 'AA', and the idea is to move from one node to the route with
 the highest total valve rate (Dijkstra in reverse). However, this is Dijkstra
 with a twist, because it's like: reverse-"Dijkstra" every node, incl. travel
 time.
+
+Yeah, it's not Dijkstra because there's not a "destination" . Just a start.
+The end result here is that all the valves are open (or "How many valves can
+you open in 30 minutes?"). Not sure if you needs BFS or DFS.
