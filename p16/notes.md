@@ -42,3 +42,13 @@ time.
 Yeah, it's not Dijkstra because there's not a "destination" . Just a start.
 The end result here is that all the valves are open (or "How many valves can
 you open in 30 minutes?"). Not sure if you needs BFS or DFS.
+
+# Scribbles:
+
+Every minute you can do a bunch of moves:
+
+1. Idle (Doing nothing)
+2. Move to one of the adjacent nodes
+3. Open the valve of the node you're currently on
+
+

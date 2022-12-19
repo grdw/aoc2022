@@ -1,12 +1,14 @@
 use std::fs;
 use std::collections::HashMap;
+use regex::Regex;
 
 struct Node {
     open: bool,
     flow_rate: usize
 }
 
-type Graph = HashMap<Node, Node>;
+type Graph = HashMap<String, Vec<String>>;
+type FlowRates = HashMap<String, usize>;
 
 fn main() {
     println!("P1: {}", part1("input"));
@@ -14,7 +16,10 @@ fn main() {
 }
 
 fn part1(file: &'static str) -> usize {
-    let graph: Graph = parse(file);
+    let (graph, flow_rates) = parse(file);
+    println!("{:?}", graph);
+    println!("===");
+    println!("{:?}", flow_rates);
     0
 }
 
@@ -32,8 +37,27 @@ fn test_part2() {
     assert_eq!(part2("test_input"), 1)
 }
 
-fn parse(file: &'static str) -> Graph {
+fn parse(file: &'static str) -> (Graph, FlowRates) {
     let mut graph: Graph = HashMap::new();
-    graph
+    let mut flow_rates: FlowRates = HashMap::new();
+    let contents = fs::read_to_string(file).unwrap();
+    let re = Regex::new(r"Valve ([A-Z]{2}) has flow rate=(\d+); tunnels? leads? to valves? ([A-Z, ]+)").unwrap();
+
+    for line in contents.split_terminator("\n") {
+        let caps = re.captures(line).unwrap();
+        let name = &caps[1];
+        let flow_rate = &caps[2].parse::<usize>().unwrap();
+        let kids = &caps[3];
+
+        flow_rates.insert(name.to_string(), *flow_rate);
+        for kid in kids.split(", ") {
+            graph
+                .entry(name.to_string())
+                .and_modify(|mut v| v.push(kid.to_string()))
+                .or_insert(vec![kid.to_string()]);
+        }
+    }
+
+    (graph, flow_rates)
 }
 
