@@ -35,8 +35,11 @@ fn part1(file: &'static str) -> usize {
     let mut rock_coords: Vec<Coords> = vec![];
 
     for i in 0..MAX {
+        println!("\nROCK #{}", i);
         let rock = ROCKS[i % ROCKS.len()];
         let mut coords = to_coords(rock);
+
+        make_space(&mut rock_coords);
         insert_rock(&mut rock_coords, &coords);
         debug_chamber(&rock_coords);
 
@@ -47,20 +50,45 @@ fn part1(file: &'static str) -> usize {
                 .unwrap();
 
             push_wind(rock_coords.last_mut().unwrap(), jet);
-
-            if j < 3 {
-                fall_rock(rock_coords.last_mut().unwrap());
-            }
+            fall_rock(&mut rock_coords);
             debug_chamber(&rock_coords);
             jet_count += 1;
         }
 
+
         // for debugging purposes
-        if i == 1 {
+        if i == 2 {
             break;
         }
     }
     0
+}
+
+fn make_space(rock_coords: &mut Vec<Coords>) {
+    let mut min_y = usize::MAX;
+    let mut max_y = 0;
+
+    for coords in rock_coords.iter() {
+        for (y, _, _) in coords {
+            if *y < min_y { min_y = *y }
+            if *y > max_y { max_y = *y }
+        }
+    }
+
+    if max_y == 0 { return }
+
+    let height = max_y - min_y;
+    let offset = if height % 2 == 0 {
+        2
+    } else {
+        3
+    };
+
+    for coords in rock_coords {
+        for (y, _, _) in coords {
+            *y += offset;
+        }
+    }
 }
 
 fn to_coords(rock: &str) -> Coords {
@@ -101,15 +129,39 @@ fn push_wind(coords: &mut Coords, wind: char) {
     }
 }
 
-fn fall_rock(coords: &mut Coords) {
-    for (y, _, _) in coords {
-        *y += 1
+fn fall_rock(coords: &mut Vec<Coords>) {
+    let len = coords.len() - 1;
+    let mut v = 0;
+
+    for (ny, nx, nc) in &coords[len] {
+        if *nc == '#' && ny + 1 > v {
+            v = ny + 1
+        }
+    }
+
+    let mut can_fall = true;
+    'outer: for i in 0..len {
+        for (fy, fx, fc) in &coords[i] {
+            if *fy == v {
+                println!("{} {} {} {}", fc, fy, fx, v);
+                can_fall = false;
+            }
+        }
+    }
+
+    println!("{}", can_fall);
+
+    if can_fall {
+        let last = coords.last_mut().unwrap();
+        for (y, _, _) in last {
+            *y += 1
+        }
     }
 }
 
 fn debug_chamber(coords: &Vec<Coords>) {
     let mut chamber = vec![];
-    let height = coords.len() * 4;
+    let height = coords.len() * 5;
 
     for _ in 0..height {
         let mut chamber_line = vec![];
