@@ -85,4 +85,18 @@ At B you can:
 Minute 2 (went with option 3).
 Opened valve A
 
-I guess you're going to get a lot of diagrams with options of moves, opens and idles. As soon as all the valves are opened there's not a lot of options left, so the rest will just be idles.
+I guess you're going to get a lot of vectors with options of moves, opens and idles. As soon as all the valves are opened there's not a lot of options left, so the rest will just be idle.
+
+So in my head this is:
+
+```
+[
+  [Move(AA), Open(AA), Move(DD), Open(DD), etc.],
+  [Move(AA), Move(DD), Open(DD), etc.]
+]
+```
+
+Then you have to calculate all of the 'flow rates' and sum them and pick
+the maximum
+
+Now, it's just a question of recursion.
