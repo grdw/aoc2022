@@ -99,4 +99,46 @@ So in my head this is:
 Then you have to calculate all of the 'flow rates' and sum them and pick
 the maximum
 
-Now, it's just a question of recursion.
+Now, it's just a question of recursion. ... or not.
+
+Because it's a lot of recursion :( (for 30 minutes it probably does 30! steps, which is not great).
+
+From each node you have:
+
+
+```
+    BB
+   /  \
+ AA   CC
+  |\  /
+  | DD -- EE -- FF -- GG -- HH
+  |
+ II
+   \
+    JJ
+```
+
+```
+AA -> [Move(BB)]
+        [Move(BB), Move(CC)]
+          [Move(BB), Move(CC), Move(DD)]
+            // And 27 more times :P which gives an enormous graph I guess
+          [Move(BB), Move(CC), Move(BB)]
+          [Move(BB), Move(CC), Open(CC)]
+        [Move(BB), Move(AA)]
+        [Move(BB), Open(BB)]
+      [Move(DD)]
+        [Move(DD), Move(CC)]
+        [Move(DD), Move(AA)]
+        [Move(DD), Move(EE)]
+        [Move(DD), Open(DD)]
+      [Move(II)]
+        [Move(II), Move(JJ)]
+        [Move(II), Open(II)]
+      [Open(AA)]
+        [Open(AA), Move(BB)]
+        [Open(AA), Move(DD)]
+        [Open(AA), Move(II)]
+```
+
+Obviously you consistently have the same choices, unless the valve is closed of course.
