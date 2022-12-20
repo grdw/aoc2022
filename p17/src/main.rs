@@ -52,7 +52,6 @@ fn part1(file: &'static str) -> usize {
 
             // The wind should push the latest rock to whichever
             // direction
-            let can_fall = can_fall(&rock_coords, jet_count, jet);
 
             if can_push_wind_right(&rock_coords, jet) {
                 push_wind_right(rock_coords.last_mut().unwrap())
@@ -60,6 +59,7 @@ fn part1(file: &'static str) -> usize {
                 push_wind_left(rock_coords.last_mut().unwrap())
             }
 
+            let can_fall = can_fall(&rock_coords, jet_count, jet);
             jet_count += 1;
             // ... and then you should tumble
             // but only if it fits
@@ -100,21 +100,17 @@ fn can_fall(coords: &Vec<Coords>, count: usize, jet: char) -> bool {
 
     for (y, x, _) in last_inserted_rock {
         if *y != max_y { continue }
-        let mut nx = *x;
 
-        if can_push_wind_left(coords, jet) {
-            nx -= 1
-        } else if can_push_wind_right(coords, jet) {
-            nx += 1
-        };
-
-        exes.push(nx);
+        exes.push(x);
     }
 
     for i in 0..l {
         for (y, x, _) in &coords[i] {
-            if *y == max_y + 1 && exes.contains(&x) {
-                fall = false
+            if *y == max_y + 1 {
+                println!("{:?} {} {}", exes, x, y);
+                if exes.contains(&x)  {
+                    fall = false
+                }
             }
         }
     }
@@ -141,7 +137,6 @@ fn move_coords_down(
     }
 
     space_to_make += (height as isize - topy as isize);
-    println!("SPACE TO MAKE: {}", space_to_make);
     for coords in rock_coords {
         for (y, _, _) in coords {
             if space_to_make < 0 {
