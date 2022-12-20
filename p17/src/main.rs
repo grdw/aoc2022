@@ -44,23 +44,39 @@ fn part1(file: &'static str) -> usize {
             bottom = highest_y(&rock_coords) - 1;
         }
         println!("======= {}", bottom);
-        debug_chamber(&rock_coords);
 
+        debug_chamber(&rock_coords);
         // BUT WHY 4 DO?
-        for i in 0..4 {
+
+        loop {
+        //while can_fall(&rock_coords, jet_count) {
             let jet = wind
                 .chars()
                 .nth(jet_count % wind.len())
                 .unwrap();
 
+            let current_bottom = highest_y_coords(
+                rock_coords.last().unwrap()
+            );
+
             // The wind should push the latest rock to whichever
             // direction
+            let can_fall = can_fall(&rock_coords, jet_count);
             push_wind(rock_coords.last_mut().unwrap(), jet);
             jet_count += 1;
             // ... and then you should tumble
-            fall_rock(&mut rock_coords, bottom);
+            // but only if it fits
+            if current_bottom < bottom {
+                fall_rock(&mut rock_coords, bottom);
+            }
+
             debug_chamber(&rock_coords);
+
+            if !can_fall {
+                break;
+            }
         }
+        debug_chamber(&rock_coords);
 
         // for debugging purposes
         if i == 3 {
@@ -68,6 +84,36 @@ fn part1(file: &'static str) -> usize {
         }
     }
     0
+}
+
+fn can_fall(coords: &Vec<Coords>, count: usize) -> bool {
+    let l = coords.len() - 1;
+
+    if l == 0 {
+        return count < 3
+    }
+
+    let last = &coords[l];
+    // Is the spot below empty
+    let max_y = highest_y_coords(last);
+    let mut fall = true;
+    let mut exes = vec![];
+
+    for (y, x, _) in last {
+        if *y != max_y { continue }
+
+        exes.push(x);
+    }
+
+    for i in 0..l {
+        for (y, x, _) in &coords[i] {
+            if *y == max_y + 1 && exes.contains(&x) {
+                fall = false
+            }
+        }
+    }
+
+    fall
 }
 
 // Give the next rock 3 spaces
@@ -123,10 +169,6 @@ fn minmax_x(coords: &Coords) -> (usize, usize) {
 
 fn fall_rock(coords: &mut Vec<Coords>, bottom: usize) {
     let last = coords.last_mut().unwrap();
-    let p = highest_y_coords(last);
-    if p >= bottom {
-        return
-    }
 
     for (y, _, _) in last {
         *y += 1
