@@ -33,41 +33,38 @@ fn part1(file: &'static str) -> usize {
     let wind = fs::read_to_string(file).unwrap();
     let mut jet_count = 0;
     let mut rock_coords: Vec<Coords> = vec![];
-    let mut bottom = 3;
 
     for i in 0..MAX {
+        println!("======= START");
         let rock = ROCKS[i % ROCKS.len()];
-        move_coords_down(&mut rock_coords);
-        rock_coords.push(to_coords(rock));
+        let insert_rock_coords = to_coords(rock);
+        move_coords_down(&mut rock_coords, &insert_rock_coords);
+        rock_coords.push(insert_rock_coords);
 
-        if i > 0 {
-            bottom = highest_y(&rock_coords) - 1;
-        }
-        println!("======= {}", bottom);
-
+        println!("AFTER INSERT");
         debug_chamber(&rock_coords);
-        // BUT WHY 4 DO?
 
         loop {
-        //while can_fall(&rock_coords, jet_count) {
             let jet = wind
                 .chars()
                 .nth(jet_count % wind.len())
                 .unwrap();
 
-            let current_bottom = highest_y_coords(
-                rock_coords.last().unwrap()
-            );
-
             // The wind should push the latest rock to whichever
             // direction
-            let can_fall = can_fall(&rock_coords, jet_count);
-            push_wind(rock_coords.last_mut().unwrap(), jet);
+            let can_fall = can_fall(&rock_coords, jet_count, jet);
+
+            if can_push_wind_right(&rock_coords, jet) {
+                push_wind_right(rock_coords.last_mut().unwrap())
+            } else if can_push_wind_left(&rock_coords, jet) {
+                push_wind_left(rock_coords.last_mut().unwrap())
+            }
+
             jet_count += 1;
             // ... and then you should tumble
             // but only if it fits
-            if current_bottom < bottom {
-                fall_rock(&mut rock_coords, bottom);
+            if can_fall {
+                fall_rock(rock_coords.last_mut().unwrap());
             }
 
             debug_chamber(&rock_coords);
@@ -76,33 +73,42 @@ fn part1(file: &'static str) -> usize {
                 break;
             }
         }
+
+        println!("FINAL AFTER ALL MOVES:");
         debug_chamber(&rock_coords);
 
         // for debugging purposes
-        if i == 3 {
+        if i == 9 {
             break;
         }
     }
     0
 }
 
-fn can_fall(coords: &Vec<Coords>, count: usize) -> bool {
+fn can_fall(coords: &Vec<Coords>, count: usize, jet: char) -> bool {
     let l = coords.len() - 1;
 
     if l == 0 {
         return count < 3
     }
 
-    let last = &coords[l];
+    let last_inserted_rock = &coords[l];
     // Is the spot below empty
-    let max_y = highest_y_coords(last);
+    let max_y = highest_y_coords(last_inserted_rock);
     let mut fall = true;
     let mut exes = vec![];
 
-    for (y, x, _) in last {
+    for (y, x, _) in last_inserted_rock {
         if *y != max_y { continue }
+        let mut nx = *x;
 
-        exes.push(x);
+        if can_push_wind_left(coords, jet) {
+            nx -= 1
+        } else if can_push_wind_right(coords, jet) {
+            nx += 1
+        };
+
+        exes.push(nx);
     }
 
     for i in 0..l {
@@ -117,10 +123,32 @@ fn can_fall(coords: &Vec<Coords>, count: usize) -> bool {
 }
 
 // Give the next rock 3 spaces
-fn move_coords_down(rock_coords: &mut Vec<Coords>) {
+fn move_coords_down(
+    rock_coords: &mut Vec<Coords>,
+    to_be_inserted_rock: &Coords
+) {
+    let mut topy = 0;
+    let mut space_to_make: isize = 3;
+    let low = lowest_y_coords(to_be_inserted_rock);
+    let high = highest_y_coords(to_be_inserted_rock);
+    let height = (high - low) + 1;
+
+    if rock_coords.len() == 0 {
+        // First time
+        topy = 1;
+    } else {
+        topy = lowest_y(rock_coords);
+    }
+
+    space_to_make += (height as isize - topy as isize);
+    println!("SPACE TO MAKE: {}", space_to_make);
     for coords in rock_coords {
         for (y, _, _) in coords {
-            *y += 3
+            if space_to_make < 0 {
+                *y -= space_to_make.abs() as usize;
+            } else {
+                *y += space_to_make as usize;
+            }
         }
     }
 }
@@ -136,41 +164,76 @@ fn to_coords(rock: &str) -> Coords {
     coords
 }
 
-fn push_wind(coords: &mut Coords, wind: char) {
-    let (min_x, max_x) = minmax_x(coords);
+fn can_push_wind_right(coords: &Vec<Coords>, jet: char) -> bool {
+    if jet == '<' { return false }
 
-    if wind == '>' && (max_x + 1) < CHAMBER_WIDTH {
-        for (_, x, _) in coords {
-            *x += 1
-        }
-    } else if wind == '<' && min_x > 0 {
-        for (_, x, _) in coords {
-            *x -= 1
-        }
-    }
-}
-
-fn minmax_x(coords: &Coords) -> (usize, usize) {
-    let mut min_x = usize::MAX;
     let mut max_x = 0;
+    let l = coords.len() - 1;
+    let last_inserted_rock = &coords[l];
 
-    for (_, x, _) in coords {
+    for (_, x, _) in last_inserted_rock {
         if *x > max_x {
             max_x = *x
         }
+    }
 
+    for i in 0..l {
+        for (ly, lx, _) in last_inserted_rock {
+            for (y, x, _) in &coords[i] {
+                if ly != y { continue }
+
+                if lx + 1 == *x {
+                    return false
+                }
+            }
+        }
+    }
+
+    max_x + 1 < CHAMBER_WIDTH
+}
+
+fn push_wind_right(coords: &mut Coords) {
+    for (_, x, _) in coords {
+        *x += 1
+    }
+}
+
+fn can_push_wind_left(coords: &Vec<Coords>, jet: char) -> bool {
+    if jet == '>' { return false }
+
+    let mut min_x = usize::MAX;
+    let l = coords.len() - 1;
+    let last_inserted_rock = &coords[l];
+
+    for (_, x, _) in last_inserted_rock {
         if *x < min_x {
             min_x = *x
         }
     }
 
-    (min_x, max_x)
+    for i in 0..l {
+        for (ly, lx, _) in last_inserted_rock {
+            for (y, x, _) in &coords[i] {
+                if ly != y { continue }
+
+                if lx - 1 == *x {
+                    return false
+                }
+            }
+        }
+    }
+
+    min_x > 0
 }
 
-fn fall_rock(coords: &mut Vec<Coords>, bottom: usize) {
-    let last = coords.last_mut().unwrap();
+fn push_wind_left(coords: &mut Coords) {
+    for (_, x, _) in coords {
+        *x -= 1
+    }
+}
 
-    for (y, _, _) in last {
+fn fall_rock(coords: &mut Coords) {
+    for (y, _, _) in coords {
         *y += 1
     }
 }
@@ -218,6 +281,27 @@ fn highest_y_coords(coords: &Coords) -> usize {
         }
     }
     max_y
+}
+
+fn lowest_y(coords: &Vec<Coords>) -> usize {
+    let mut min_y = usize::MAX;
+    for coords in coords {
+        let y = lowest_y_coords(coords);
+        if y < min_y {
+            min_y = y
+        }
+    }
+    min_y
+}
+
+fn lowest_y_coords(coords: &Coords) -> usize {
+    let mut min_y = usize::MAX;
+    for (y, _, _) in coords {
+        if *y < min_y {
+            min_y = *y
+        }
+    }
+    min_y
 }
 
 #[test]
