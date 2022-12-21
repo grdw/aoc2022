@@ -3,6 +3,8 @@ use std::collections::{HashSet, HashMap, VecDeque};
 use std::{thread, time::Duration};
 use regex::Regex;
 
+const TIME: usize = 30;
+
 type Routes = HashMap<String, Vec<String>>;
 type FlowRates = HashMap<String, u32>;
 type ValveStates = HashMap<String, bool>;
@@ -22,7 +24,7 @@ fn main() {
 fn part1(file: &'static str) -> usize {
     let (graph, flow_rates, mut valve_states) = parse(file);
     let start = Move::Navigate("AA".to_string());
-    let mut possible_moves: Vec<Vec<Move>> = vec![];
+    let mut total_flow_rates: Vec<u32> = vec![];
 
     println!("{:?}", graph);
     println!("{:?}", flow_rates);
@@ -32,9 +34,12 @@ fn part1(file: &'static str) -> usize {
         &flow_rates,
         &mut valve_states,
         start,
-        &mut possible_moves,
-        0
+        &mut total_flow_rates,
+        0,
+        4
     );
+
+    println!("{:?}", total_flow_rates);
     0
 }
 
@@ -43,15 +48,20 @@ fn dfs(
     flow_rates: &FlowRates,
     valve_states: &mut ValveStates,
     mx: Move,
-    possible_moves: &mut Vec<Vec<Move>>,
+    total_flow_rates: &mut Vec<u32>,
+    total_flow_rate: u32,
     time: usize
 ) {
 
-    if time >= 4 {
+    println!("{:?} {}", mx, time);
+    if time <= 0 {
+        if total_flow_rate > 0 {
+            total_flow_rates.push(total_flow_rate);
+        }
+        // Add total flow rate to list
         return
     }
 
-    println!("{:?} {}", mx, time);
     //thread::sleep(Duration::from_millis(1000));
 
     match mx {
@@ -61,25 +71,48 @@ fn dfs(
             let valve_state = read_valves.get(&node_name).unwrap();
             let flow_rate = flow_rates.get(&node_name).unwrap();
 
+            let mut t_opens: u32 = 0;
+            for (valve, state) in &read_valves {
+                if !state { continue };
+
+                let rate = flow_rates.get(valve).unwrap();
+                println!("{:?} {}", rate, valve);
+                t_opens += rate;
+            }
+
+            println!("{:?} {}", total_flow_rate, t_opens);
+
+
             for kid in children {
                 dfs(
                     graph,
                     flow_rates,
                     valve_states,
                     Move::Navigate(kid.to_string()),
-                    possible_moves,
-                    time + 1
+                    total_flow_rates,
+                    total_flow_rate,
+                    time - 1
                 );
             }
 
             if !valve_state && *flow_rate > 0 {
-                dfs(graph, flow_rates, valve_states, Move::OpenValve(node_name), possible_moves, time + 1);
+                dfs(
+                    graph,
+                    flow_rates,
+                    valve_states,
+                    Move::OpenValve(node_name),
+                    total_flow_rates,
+                    total_flow_rate,
+                    time - 1
+                );
             }
         },
         Move::OpenValve(node_name) => {
             let children = graph.get(&node_name).unwrap();
             let valve_state = valve_states.get_mut(&node_name).unwrap();
+            let flow_rate = flow_rates.get(&node_name).unwrap();
             *valve_state = true;
+            println!("{}", "OPEN");
 
             for kid in children {
                 dfs(
@@ -87,8 +120,9 @@ fn dfs(
                     flow_rates,
                     valve_states,
                     Move::Navigate(kid.to_string()),
-                    possible_moves,
-                    time + 1
+                    total_flow_rates,
+                    total_flow_rate + flow_rate,
+                    time - 1
                 );
             }
 
