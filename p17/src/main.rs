@@ -35,14 +35,13 @@ fn part1(file: &'static str) -> usize {
     let mut rock_coords: Vec<Coords> = vec![];
 
     for i in 0..MAX {
-        println!("======= START");
         let rock = ROCKS[i % ROCKS.len()];
         let insert_rock_coords = to_coords(rock);
         move_coords_down(&mut rock_coords, &insert_rock_coords);
         rock_coords.push(insert_rock_coords);
 
-        println!("AFTER INSERT");
-        debug_chamber(&rock_coords);
+        //println!("AFTER INSERT");
+        //debug_chamber(&rock_coords);
 
         loop {
             let jet = wind
@@ -59,7 +58,7 @@ fn part1(file: &'static str) -> usize {
                 push_wind_left(rock_coords.last_mut().unwrap())
             }
 
-            let can_fall = can_fall(&rock_coords, jet_count, jet);
+            let can_fall = can_fall(&rock_coords, jet_count);
             jet_count += 1;
             // ... and then you should tumble
             // but only if it fits
@@ -67,25 +66,21 @@ fn part1(file: &'static str) -> usize {
                 fall_rock(rock_coords.last_mut().unwrap());
             }
 
-            debug_chamber(&rock_coords);
+            //debug_chamber(&rock_coords);
 
             if !can_fall {
                 break;
             }
         }
 
-        println!("FINAL AFTER ALL MOVES:");
-        debug_chamber(&rock_coords);
-
-        // for debugging purposes
-        if i == 9 {
-            break;
-        }
+        //println!("FINAL AFTER ALL MOVES:");
+        //debug_chamber(&rock_coords);
     }
-    0
+
+    highest_y(&rock_coords)
 }
 
-fn can_fall(coords: &Vec<Coords>, count: usize, jet: char) -> bool {
+fn can_fall(coords: &Vec<Coords>, count: usize) -> bool {
     let l = coords.len() - 1;
 
     if l == 0 {
@@ -107,7 +102,6 @@ fn can_fall(coords: &Vec<Coords>, count: usize, jet: char) -> bool {
     for i in 0..l {
         for (y, x, _) in &coords[i] {
             if *y == max_y + 1 {
-                println!("{:?} {} {}", exes, x, y);
                 if exes.contains(&x)  {
                     fall = false
                 }
@@ -204,6 +198,10 @@ fn can_push_wind_left(coords: &Vec<Coords>, jet: char) -> bool {
         if *x < min_x {
             min_x = *x
         }
+    }
+
+    if min_x == 0 {
+        return false
     }
 
     for i in 0..l {
