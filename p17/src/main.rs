@@ -36,15 +36,15 @@ fn part1(file: &'static str) -> usize {
         to_coords("#######", 0, 0)
     ];
 
-    for i in 0..10 {
+    for i in 0..MAX {
         println!("\n⚡⚡⚡⚡⚡ CYCLE: {} ⚡⚡⚡⚡⚡", i);
         let rock = ROCKS[i % ROCKS.len()];
         let y_offset = highest_y(&rock_coords) + 4;
         let insert_rock_coords = to_coords(rock, y_offset, 2);
         rock_coords.push(insert_rock_coords);
 
-        println!("AFTER INSERT:");
-        debug_chamber(&rock_coords);
+        //println!("AFTER INSERT:");
+        //debug_chamber(&rock_coords);
 
         loop {
             let jet = wind
@@ -55,16 +55,16 @@ fn part1(file: &'static str) -> usize {
             // The wind should push the latest rock to whichever
             // direction
             if can_push_wind_right(&rock_coords, jet) {
-                println!("🍇 RIGHT PUSH >");
+                //println!("🍇 RIGHT PUSH >");
                 push_wind_right(rock_coords.last_mut().unwrap())
             } else if can_push_wind_left(&rock_coords, jet) {
-                println!("🍓 LEFT PUSH <");
+                //println!("🍓 LEFT PUSH <");
                 push_wind_left(rock_coords.last_mut().unwrap())
             } else {
-                println!("🍍 IDLE");
+                //println!("🍍 IDLE");
             }
 
-            debug_chamber(&rock_coords);
+            //debug_chamber(&rock_coords);
 
             let can_fall = can_fall(&rock_coords);
             jet_count += 1;
@@ -72,7 +72,7 @@ fn part1(file: &'static str) -> usize {
             // but only if it fits
             if can_fall {
                 fall_rock(rock_coords.last_mut().unwrap());
-                debug_chamber(&rock_coords);
+                //debug_chamber(&rock_coords);
             }
 
             if !can_fall {
@@ -81,7 +81,7 @@ fn part1(file: &'static str) -> usize {
         }
     }
 
-    0
+    highest_y(&rock_coords)
 }
 
 fn can_fall(coords: &Vec<Coords>) -> bool {
@@ -250,17 +250,6 @@ fn highest_y_coords(coords: &Coords) -> usize {
         }
     }
     max_y
-}
-
-fn lowest_y(coords: &Vec<Coords>) -> usize {
-    let mut min_y = usize::MAX;
-    for coords in coords {
-        let y = lowest_y_coords(coords);
-        if y < min_y {
-            min_y = y
-        }
-    }
-    min_y
 }
 
 fn lowest_y_coords(coords: &Coords) -> usize {
