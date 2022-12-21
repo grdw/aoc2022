@@ -30,21 +30,19 @@ fn main() {
 }
 
 fn part1(file: &'static str) -> usize {
-    let wind = fs::read_to_string(file).unwrap();
+    let mut wind = fs::read_to_string(file).unwrap();
+    wind = wind.trim().to_string();
+
     let mut jet_count = 0;
     let mut rock_coords: Vec<Coords> = vec![
         to_coords("#######", 0, 0)
     ];
 
     for i in 0..MAX {
-        println!("\n⚡⚡⚡⚡⚡ CYCLE: {} ⚡⚡⚡⚡⚡", i);
         let rock = ROCKS[i % ROCKS.len()];
         let y_offset = highest_y(&rock_coords) + 4;
         let insert_rock_coords = to_coords(rock, y_offset, 2);
         rock_coords.push(insert_rock_coords);
-
-        //println!("AFTER INSERT:");
-        //debug_chamber(&rock_coords);
 
         loop {
             let jet = wind
@@ -52,27 +50,23 @@ fn part1(file: &'static str) -> usize {
                 .nth(jet_count % wind.len())
                 .unwrap();
 
+            jet_count += 1;
+
             // The wind should push the latest rock to whichever
             // direction
             if can_push_wind_right(&rock_coords, jet) {
-                //println!("🍇 RIGHT PUSH >");
                 push_wind_right(rock_coords.last_mut().unwrap())
             } else if can_push_wind_left(&rock_coords, jet) {
-                //println!("🍓 LEFT PUSH <");
                 push_wind_left(rock_coords.last_mut().unwrap())
             } else {
                 //println!("🍍 IDLE");
             }
 
-            //debug_chamber(&rock_coords);
-
             let can_fall = can_fall(&rock_coords);
-            jet_count += 1;
             // ... and then you should tumble
             // but only if it fits
             if can_fall {
                 fall_rock(rock_coords.last_mut().unwrap());
-                //debug_chamber(&rock_coords);
             }
 
             if !can_fall {
@@ -81,7 +75,7 @@ fn part1(file: &'static str) -> usize {
         }
     }
 
-    highest_y(&rock_coords)
+    highest_y(&rock_coords) - 1
 }
 
 fn can_fall(coords: &Vec<Coords>) -> bool {
