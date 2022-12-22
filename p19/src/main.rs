@@ -1,7 +1,7 @@
 use std::fs;
 use regex::Regex;
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 enum RobotType {
     Ore,
     Clay,
@@ -9,22 +9,62 @@ enum RobotType {
     Geode
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Cost {
-    Ore(u8),
-    Clay(u8),
-    Obsidian(u8)
+    Ore(usize),
+    Clay(usize),
+    Obsidian(usize)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Robot {
     robot_type: RobotType,
     costs: Vec<Cost>
 }
 
 #[derive(Debug)]
+struct Mining {
+    ore: usize,
+    clay: usize,
+    obsidian: usize,
+    geode: usize
+}
+
+impl Robot {
+    pub fn backpack_robot() -> Robot {
+        Robot { robot_type: RobotType::Ore, costs: vec![] }
+    }
+}
+
+#[derive(Debug)]
 struct Blueprint {
     robots: Vec<Robot>
+}
+
+impl Blueprint {
+    pub fn buy_robot(&self, mining: &mut Mining) -> Option<Robot> {
+        for robot in &self.robots {
+            let can_pay = robot.costs.iter().all(|cost|
+                match cost {
+                    Cost::Ore(price)      => mining.ore >= *price,
+                    Cost::Clay(price)     => mining.clay >= *price,
+                    Cost::Obsidian(price) => mining.obsidian >= *price
+                }
+            );
+
+            if can_pay {
+                for cost in robot.costs.iter() {
+                    match cost {
+                        Cost::Ore(price)      => mining.ore -= *price,
+                        Cost::Clay(price)     => mining.clay -= *price,
+                        Cost::Obsidian(price) => mining.obsidian -= *price
+                    }
+                }
+                return Some(robot.clone())
+            }
+        }
+        None
+    }
 }
 
 fn main() {
@@ -34,7 +74,41 @@ fn main() {
 
 fn part1(file: &'static str) -> usize {
     let blueprints = parse(file);
-    println!("{:?}", blueprints);
+    let mut active_robots = vec![
+        Robot::backpack_robot()
+    ];
+
+    let mut building_robots = vec![];
+
+    for blueprint in &blueprints {
+        let mut mining = Mining {
+            ore: 0, clay: 0, obsidian: 0, geode: 0
+        };
+
+        println!("{:?}", blueprint);
+        for i in 0..24 {
+            println!("At minute #{}", i + 1);
+            active_robots.append(&mut building_robots);
+
+            if let Some(robot) = blueprint.buy_robot(&mut mining) {
+                building_robots.push(robot);
+            }
+
+            for robot in &active_robots {
+                match robot.robot_type {
+                    RobotType::Ore      => mining.ore += 1,
+                    RobotType::Clay     => mining.clay += 1,
+                    RobotType::Obsidian => mining.obsidian += 1,
+                    RobotType::Geode    => mining.geode += 1
+
+                }
+            }
+
+            println!("{:?}", mining);
+        }
+
+        panic!("DEBUG");
+    }
     0
 }
 
@@ -74,7 +148,7 @@ fn parse(file: &'static str) -> Vec<Blueprint> {
             let mut costs = vec![];
             for cost in caps[2].split(" and ") {
                 let (price, material) = cost.split_once(" ").unwrap();
-                let price = price.parse::<u8>().unwrap();
+                let price = price.parse::<usize>().unwrap();
 
                 costs.push(
                     match material {
