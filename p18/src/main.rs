@@ -1,7 +1,9 @@
 use std::fs;
+use std::cmp::{max, min};
+use std::collections::{BTreeSet, HashSet};
 
 type Coords = Vec<(isize, isize, isize)>;
-type FCoords<'a> = Vec<&'a(isize, isize, isize)>;
+type HCoords = HashSet<(isize, isize, isize)>;
 
 fn main() {
     println!("P1: {}", part1("input"));
@@ -13,19 +15,13 @@ fn part1(file: &'static str) -> usize {
     visible_sides(&coords)
 }
 
-fn visible_sides(coords: &Coords) -> usize {
+fn visible_sides(coords: &HCoords) -> usize {
     let mut exposed = 0;
 
-    for i in 0..coords.len() {
+    for (cx, cy, cz) in coords.iter() {
         let mut visible_sides = 6;
 
-        let (cx, cy, cz) = coords[i];
-
-        for j in 0..coords.len() {
-            if i == j { continue }
-
-            let (nx, ny, nz) = coords[j];
-
+        for (nx, ny, nz) in coords.iter() {
             if ((nx - cx).abs() == 1 && ny == cy && nz == cz) ||
                (nx == cx && (ny - cy).abs() == 1 && nz == cz) ||
                (nx == cx && ny == cy && (nz - cz).abs() == 1) {
@@ -45,135 +41,82 @@ fn test_part1() {
 }
 
 fn part2(file: &'static str) -> usize {
-    let mut coords = parse(file);
-    coords.sort();
-    let mut visible_sides = visible_sides(&coords);
-    let (mut min_x, mut max_x) = (isize::MAX, 0);
-    let (mut min_y, mut max_y) = (isize::MAX, 0);
-    let (mut min_z, mut max_z) = (isize::MAX, 0);
+    let (
+        mut min_x,
+        mut max_x,
+        mut min_y,
+        mut max_y,
+        mut min_z,
+        mut max_z
+    ) = (
+        isize::MAX,
+        isize::MIN,
+        isize::MAX,
+        isize::MIN,
+        isize::MAX,
+        isize::MIN
+    );
 
-    for i in 0..coords.len() {
-        let (cx, cy, cz) = coords[i];
+    let coords = parse(file);
+    let points = coords.into_iter().inspect(|&(x, y, z)| {
+            min_x = min(min_x, x);
+            max_x = max(max_x, x);
+            min_y = min(min_y, y);
+            max_y = max(max_y, y);
+            min_z = min(min_z, z);
+            max_z = max(max_z, z);
+        })
+        .collect::<BTreeSet<_>>();
+    let mut queue = vec![(min_x - 1, min_y - 1, min_z - 1)];
+    let mut outside = queue.iter().copied().collect::<BTreeSet<_>>();
 
-        if cx < min_x { min_x = cx };
-        if cx > max_x { max_x = cx };
-        if cy < min_y { min_y = cy };
-        if cy > max_y { max_y = cy };
-        if cz < min_z { min_z = cz };
-        if cz > max_z { max_z = cz };
-    }
-
-    // Open https://www.math3d.org/
-    // Then to look at all the visible cubes from all the sides is:
-    //
-    // (Assume LE, RI, TO, BO, FR, BA)
-    // The 6 sides:
-    // (x, z) (LE + RI)
-    // (y, z) (FR + BA
-    // (x, y) (TO + BO)
-
-    let mut x_air_cubes: Coords = vec![];
-    let mut y_air_cubes: Coords = vec![];
-    let mut z_air_cubes: Coords = vec![];
-
-    for lx in min_x..=max_x {
-        for lz in min_z..=max_z {
-            let f: FCoords = coords
-                .iter()
-                .filter(|(x, _, z)| *x == lx && *z == lz)
-                .collect();
-
-            if f.len() > 1 {
-                let mut prev_y = f[0].1 - 1;
-                for (_, fy, _) in &f {
-                    if fy - prev_y > 1 {
-                        for y in (prev_y+1..*fy) {
-                            y_air_cubes.push((lx, y, lz));
-                        }
-                    }
-
-                    prev_y = *fy;
-                }
+    while let Some(point) = queue.pop() {
+        for (x, y, z) in neighbors(point) {
+            if (min_x - 1..=max_x + 1).contains(&x)
+                && (min_y - 1..=max_y + 1).contains(&y)
+                && (min_z - 1..=max_z + 1).contains(&z)
+                && !points.contains(&(x, y, z))
+                && outside.insert((x, y, z))
+            {
+                queue.push((x, y, z));
             }
         }
     }
-
-    for lx in min_x..=max_x {
-        for ly in min_y..=max_y {
-            let f: FCoords = coords
-                .iter()
-                .filter(|(x, y, _)| *x == lx && *y == ly)
-                .collect();
-
-            if f.len() > 1 {
-                let mut prev_z = f[0].1 - 1;
-                for (_, _, fz) in &f {
-                    if fz - prev_z > 1 {
-                        for z in (prev_z+1..*fz) {
-                            z_air_cubes.push((lx, ly, z));
-                        }
-                    }
-
-                    prev_z = *fz;
-                }
-            }
-        }
-    }
-
-    for ly in min_y..=max_y {
-        for lz in min_z..=max_z {
-            let f: FCoords = coords
-                .iter()
-                .filter(|(_, y, z)| *y == ly && *z == lz)
-                .collect();
-
-            if f.len() > 1 {
-                let mut prev_x = f[0].1 - 1;
-                for (fx, _, _) in &f {
-                    if fx - prev_x > 1 {
-                        for x in (prev_x+1..*fx) {
-                            x_air_cubes.push((x, ly, lz));
-                        }
-                    }
-
-                    prev_x = *fx;
-                }
-            }
-        }
-    }
-
-    println!("{:?}", x_air_cubes.len());
-    println!("{:?}", y_air_cubes.len());
-    println!("{:?}", z_air_cubes.len());
-    println!("==========");
-    x_air_cubes
-        .retain(|(x, y, z)| {
-            y_air_cubes.contains(&(*x, *y, *z)) &&
-            z_air_cubes.contains(&(*x, *y, *z))
-        });
-
-    //println!("{:?}", x_air_cubes);
-    let remove = x_air_cubes.len() * 6;
-    println!("{}", visible_sides);
-    println!("{:?}", x_air_cubes.len());
-    println!("{}", remove);
-
-    visible_sides - remove
+    points
+        .iter()
+        .copied()
+        .flat_map(neighbors)
+        .filter(|point| outside.contains(point))
+        .count()
 }
+
+fn neighbors((x, y, z): (isize, isize, isize)) -> Coords {
+    vec![
+        (x + 1, y, z),
+        (x - 1, y, z),
+        (x, y + 1, z),
+        (x, y - 1, z),
+        (x, y, z + 1),
+        (x, y, z - 1),
+    ]
+}
+
 
 #[test]
 fn test_part2() {
     assert_eq!(part2("test_input"), 58);
 }
 
-fn parse(file: &'static str) -> Coords {
+fn parse(file: &'static str) -> HCoords {
     let contents = fs::read_to_string(file).unwrap();
-    contents.split_terminator("\n").map(|line| {
+    let mut set = HashSet::new();
+    for line in contents.split_terminator("\n") {
         let nums: Vec<isize> = line
             .split(",")
             .map(|n| n.parse::<isize>().unwrap())
             .collect();
 
-        (nums[0], nums[1], nums[2])
-    }).collect()
+        set.insert((nums[0], nums[1], nums[2]));
+    }
+    set
 }
