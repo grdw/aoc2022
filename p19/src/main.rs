@@ -1,8 +1,8 @@
-use rand::{Rng};
 use regex::Regex;
 use std::fs;
+use std::collections::HashMap;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 enum RobotType {
     Ore,
     Clay,
@@ -43,20 +43,9 @@ struct Blueprint {
 }
 
 impl Blueprint {
-    pub fn buy_robot(&self, mining: &mut Mining) -> Option<Robot> {
-        let mut rand = rand::thread_rng();
-
+    pub fn buy_robot(&self, mining: &mut Mining, active_robots: &Vec<Robot>) -> Option<Robot> {
         for robot in &self.robots {
-            let buy = rand.gen_range(0..=1);
-            let can_pay = robot.costs.iter().all(|cost|
-                match cost {
-                    Cost::Ore(price)      => mining.ore >= *price,
-                    Cost::Clay(price)     => mining.clay >= *price,
-                    Cost::Obsidian(price) => mining.obsidian >= *price
-                }
-            );
-
-            if can_pay && buy == 1 {
+            if self.can_pay(robot, mining) && self.fits_buying_strategy(active_robots, mining, robot) {
                 for cost in robot.costs.iter() {
                     match cost {
                         Cost::Ore(price)      => mining.ore -= *price,
@@ -69,11 +58,47 @@ impl Blueprint {
         }
         None
     }
+
+    fn can_pay(&self, robot: &Robot, mining: &Mining) -> bool {
+        robot.costs.iter().rev().all(|cost|
+            match cost {
+                Cost::Ore(price)      => mining.ore >= *price,
+                Cost::Clay(price)     => mining.clay >= *price,
+                Cost::Obsidian(price) => mining.obsidian >= *price
+            }
+        )
+    }
+
+    fn fits_buying_strategy(&self, active_robots: &Vec<Robot>, mining: &Mining, robot: &Robot) -> bool {
+        for cost in robot.costs.iter() {
+            let money = match cost {
+                Cost::Ore(price)      => *price,
+                Cost::Clay(price)     => *price,
+                Cost::Obsidian(price) => *price
+            };
+        }
+
+        let mut robot_counts = HashMap::new();
+        for robot in active_robots {
+            robot_counts
+                .entry(robot.robot_type)
+                .and_modify(|x| *x += 1)
+                .or_insert(1);
+        }
+
+        //println!("{:?}", active_robots);
+        //println!("{:?}", mining);
+
+        match robot_counts.get(&robot.robot_type) {
+            Some(n) => *n < 3,
+            None => true
+        }
+    }
 }
 
 fn main() {
-    println!("P1: {}", part1("input"));
-    println!("P2: {}", part2("input"));
+    println!("P1: {}", part1("test_input"));
+    //println!("P2: {}", part2("input"));
 }
 
 fn part1(file: &'static str) -> usize {
@@ -81,24 +106,11 @@ fn part1(file: &'static str) -> usize {
     let mut total = 0;
 
     for (i, blueprint) in blueprints.iter().enumerate() {
-        let quality_level = random_walk_blueprint(blueprint);
+        let quality_level = walk_blueprint(blueprint);
         println!("Blueprint #{} has q: {:?}", i + 1, quality_level);
         total += (quality_level) * (i + 1);
     }
     total
-}
-
-fn random_walk_blueprint(blueprint: &Blueprint) -> usize {
-    let mut max_geode = 0;
-
-    for _ in 0..250_000 {
-        let n = walk_blueprint(blueprint);
-        if n > max_geode {
-            max_geode = n;
-        }
-    }
-
-    max_geode
 }
 
 fn walk_blueprint(blueprint: &Blueprint) -> usize {
@@ -111,7 +123,7 @@ fn walk_blueprint(blueprint: &Blueprint) -> usize {
     for _ in 0..24 {
         active_robots.append(&mut building_robots);
 
-        if let Some(robot) = blueprint.buy_robot(&mut mining) {
+        if let Some(robot) = blueprint.buy_robot(&mut mining, &active_robots) {
             building_robots.push(robot);
         }
 
