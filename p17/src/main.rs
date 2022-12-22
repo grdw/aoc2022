@@ -1,6 +1,5 @@
 use std::fs;
 
-const MAX: usize = 2022;
 const CHAMBER_WIDTH: usize = 7;
 const ROCKS: [&'static str; 5] = [
     "####",
@@ -25,11 +24,11 @@ const ROCKS: [&'static str; 5] = [
 type Coords = Vec<(usize, usize)>;
 
 fn main() {
-    println!("P1: {}", part1("input"));
-    println!("P2: {}", part2("input"));
+    println!("P1: {}", tetris("input", 2022));
+    println!("P2: {}", tetris("input", 1_000_000_000_000));
 }
 
-fn part1(file: &'static str) -> usize {
+fn tetris(file: &'static str, max: usize) -> usize {
     let mut wind = fs::read_to_string(file).unwrap();
     wind = wind.trim().to_string();
 
@@ -40,7 +39,7 @@ fn part1(file: &'static str) -> usize {
 
     // Bug: it takes 2353 cycles to get to the height
     // which is not the same as 2020 though.
-    for i in 0..25 {
+    for i in 0..max {
         println!("AT CYCLE {}", i);
         let rock = ROCKS[i % ROCKS.len()];
         let y_offset = highest_y(&rock_coords) + 4;
@@ -74,10 +73,6 @@ fn part1(file: &'static str) -> usize {
                 break;
             }
         }
-
-        if i % 5 == 1 {
-            debug_chamber(&rock_coords);
-        }
     }
 
     highest_y(&rock_coords)
@@ -87,31 +82,13 @@ fn can_fall(coords: &Vec<Coords>) -> bool {
     let l = coords.len() - 1;
     let last_inserted_rock = &coords[l];
     // Is the spot below empty
-    let max_y = lowest_y_coords(last_inserted_rock);
     let mut fall = true;
-
-    let annoying_plus_sign = l % 5 == 2;
 
     'outer: for i in 0..l {
         for (y, x) in &coords[i] {
-            if (y + 1) != max_y {
-                continue
-            }
-
             for (ly, lx) in last_inserted_rock {
-                //println!("Last: {} {}, Coord: {} {}", lx, ly - 1, x, y);
                 let cant_go_down = lx == x && *ly == (y + 1);
-                let cant_go_dl = lx > &0 && (lx - 1 == *x && *ly == (y + 1));
-                let cant_go_dr = lx + 1 == *x && *ly == (y + 1);
-
-                if annoying_plus_sign && (cant_go_down || cant_go_dr || cant_go_dl) {
-                    println!("~~~ DOWN {} {} {} {}", lx, ly, x, y + 1);
-                    fall = false;
-                    break 'outer;
-                }
-
-                if cant_go_down { //&& cant_go_dl && cant_go_dr {
-                    println!("DOWN {} {} {} {}", lx, ly, x, y + 1);
+                if cant_go_down {
                     fall = false;
                     break 'outer;
                 }
@@ -272,11 +249,6 @@ fn lowest_y_coords(coords: &Coords) -> usize {
 }
 
 #[test]
-fn test_part1() {
-    assert_eq!(part1("test_input"), 3068)
-}
-
-fn part2(file: &'static str) -> usize {
-    //let wind = fs::read_to_string(file).unwrap();
-    0
+fn test_tetris() {
+    assert_eq!(tetris("test_input", 2022), 3068)
 }
