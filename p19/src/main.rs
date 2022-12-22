@@ -74,42 +74,40 @@ fn main() {
 
 fn part1(file: &'static str) -> usize {
     let blueprints = parse(file);
-    let mut active_robots = vec![
-        Robot::backpack_robot()
-    ];
 
-    let mut building_robots = vec![];
 
-    for blueprint in &blueprints {
-        let mut mining = Mining {
-            ore: 0, clay: 0, obsidian: 0, geode: 0
-        };
-
-        println!("{:?}", blueprint);
-        for i in 0..24 {
-            println!("At minute #{}", i + 1);
-            active_robots.append(&mut building_robots);
-
-            if let Some(robot) = blueprint.buy_robot(&mut mining) {
-                building_robots.push(robot);
-            }
-
-            for robot in &active_robots {
-                match robot.robot_type {
-                    RobotType::Ore      => mining.ore += 1,
-                    RobotType::Clay     => mining.clay += 1,
-                    RobotType::Obsidian => mining.obsidian += 1,
-                    RobotType::Geode    => mining.geode += 1
-
-                }
-            }
-
-            println!("{:?}", mining);
-        }
-
-        panic!("DEBUG");
+    for (i, blueprint) in blueprints.iter().enumerate() {
+        println!("{}", walk_blueprint(blueprint) * (i + 1));
     }
     0
+}
+
+fn walk_blueprint(blueprint: &Blueprint) -> usize {
+    let mut active_robots = vec![Robot::backpack_robot()];
+    let mut building_robots = vec![];
+    let mut mining = Mining {
+        ore: 0, clay: 0, obsidian: 0, geode: 0
+    };
+
+    for i in 0..24 {
+        active_robots.append(&mut building_robots);
+
+        if let Some(robot) = blueprint.buy_robot(&mut mining) {
+            building_robots.push(robot);
+        }
+
+        for robot in &active_robots {
+            match robot.robot_type {
+                RobotType::Ore      => mining.ore += 1,
+                RobotType::Clay     => mining.clay += 1,
+                RobotType::Obsidian => mining.obsidian += 1,
+                RobotType::Geode    => mining.geode += 1
+
+            }
+        }
+    }
+
+    mining.geode
 }
 
 #[test]
