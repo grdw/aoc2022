@@ -40,7 +40,7 @@ fn tetris(file: &'static str, max: usize) -> usize {
     // Bug: it takes 2353 cycles to get to the height
     // which is not the same as 2020 though.
     for i in 0..max {
-        println!("AT CYCLE {}", i);
+        println!("AT CYCLE {} {}", i, rock_coords.len());
         let rock = ROCKS[i % ROCKS.len()];
         let y_offset = highest_y(&rock_coords) + 4;
         let insert_rock_coords = to_coords(rock, y_offset, 2);
@@ -73,6 +73,8 @@ fn tetris(file: &'static str, max: usize) -> usize {
                 break;
             }
         }
+
+        delete_coords(&mut rock_coords);
     }
 
     highest_y(&rock_coords)
@@ -248,7 +250,35 @@ fn lowest_y_coords(coords: &Coords) -> usize {
     min_y
 }
 
+fn delete_coords(coords: &mut Vec<Coords>) {
+    let mut comb = vec![0;7];
+    let coords_len = coords.len();
+
+    for i in 0..coords_len  {
+        let rock_shape = &coords[i];
+        for (y, x) in rock_shape {
+            if *y > comb[*x] {
+                comb[*x] = *y;
+            }
+        }
+    }
+
+    for j in 0..coords_len {
+        let rock_shape = &mut coords[j];
+        for i in (0..rock_shape.len()).rev() {
+            let (y, x) = &rock_shape[i];
+
+            if comb[*x] > (*y + 4) {
+                rock_shape.remove(i);
+            }
+        }
+    }
+
+    coords.retain(|rock_shape| rock_shape.len() > 0);
+}
+
 #[test]
 fn test_tetris() {
+    assert_eq!(tetris("test_input", 2), 4);
     assert_eq!(tetris("test_input", 2022), 3068)
 }
