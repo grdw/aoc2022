@@ -1,5 +1,6 @@
-use std::fs;
+use rand::{Rng};
 use regex::Regex;
+use std::fs;
 
 #[derive(Debug, Copy, Clone)]
 enum RobotType {
@@ -43,7 +44,10 @@ struct Blueprint {
 
 impl Blueprint {
     pub fn buy_robot(&self, mining: &mut Mining) -> Option<Robot> {
+        let mut rand = rand::thread_rng();
+
         for robot in &self.robots {
+            let buy = rand.gen_range(0..=1);
             let can_pay = robot.costs.iter().all(|cost|
                 match cost {
                     Cost::Ore(price)      => mining.ore >= *price,
@@ -52,7 +56,7 @@ impl Blueprint {
                 }
             );
 
-            if can_pay {
+            if can_pay && buy == 1 {
                 for cost in robot.costs.iter() {
                     match cost {
                         Cost::Ore(price)      => mining.ore -= *price,
@@ -74,12 +78,27 @@ fn main() {
 
 fn part1(file: &'static str) -> usize {
     let blueprints = parse(file);
-
+    let mut total = 0;
 
     for (i, blueprint) in blueprints.iter().enumerate() {
-        println!("{}", walk_blueprint(blueprint) * (i + 1));
+        let quality_level = random_walk_blueprint(blueprint);
+        println!("Blueprint #{} has q: {:?}", i + 1, quality_level);
+        total += (quality_level) * (i + 1);
     }
-    0
+    total
+}
+
+fn random_walk_blueprint(blueprint: &Blueprint) -> usize {
+    let mut max_geode = 0;
+
+    for _ in 0..250_000 {
+        let n = walk_blueprint(blueprint);
+        if n > max_geode {
+            max_geode = n;
+        }
+    }
+
+    max_geode
 }
 
 fn walk_blueprint(blueprint: &Blueprint) -> usize {
@@ -89,7 +108,7 @@ fn walk_blueprint(blueprint: &Blueprint) -> usize {
         ore: 0, clay: 0, obsidian: 0, geode: 0
     };
 
-    for i in 0..24 {
+    for _ in 0..24 {
         active_robots.append(&mut building_robots);
 
         if let Some(robot) = blueprint.buy_robot(&mut mining) {
@@ -112,7 +131,7 @@ fn walk_blueprint(blueprint: &Blueprint) -> usize {
 
 #[test]
 fn test_part1() {
-    assert_eq!(part1("test_input"), 1);
+    assert_eq!(part1("test_input"), 33);
 }
 
 fn part2(file: &'static str) -> usize {
