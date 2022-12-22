@@ -24,60 +24,116 @@ const ROCKS: [&'static str; 5] = [
 type Coords = Vec<(usize, usize)>;
 
 fn main() {
-    println!("P1: {}", tetris("input", 2022));
-    //println!("P2: {}", tetris("input", 1000));
+    println!("P1: {}", part1("input"));
+    println!("P1: {}", part2("input"));
 }
 
-fn tetris(file: &'static str, max: usize) -> usize {
-    let mut wind = fs::read_to_string(file).unwrap();
-    wind = wind.trim().to_string();
+fn part1(file: &'static str) -> usize {
+    let wind = parse_wind(file);
+    let mut jet_count = 0;
+    let mut rock_coords: Vec<Coords> = vec![
+        to_coords("#######", 0, 0)
+    ];
+
+    for i in 0..2022 {
+        tetris_drop(i, &wind, &mut jet_count, &mut rock_coords);
+        delete_coords(&mut rock_coords);
+    }
+
+    highest_y(&rock_coords)
+}
+
+#[test]
+fn test_part1() {
+    assert_eq!(part1("test_input"), 3068);
+}
+
+fn part2(file: &'static str) -> usize {
+    let highest_map = tetris_height_diff(file, 100);
+    0
+}
+
+#[test]
+fn test_part2() {
+    assert_eq!(part2("test_input"), 1514285714288);
+}
+
+fn tetris_height_diff(file: &'static str, max: usize) -> Vec<usize> {
+    let wind = parse_wind(file);
 
     let mut jet_count = 0;
     let mut rock_coords: Vec<Coords> = vec![
         to_coords("#######", 0, 0)
     ];
 
+    let mut max_height_diff_map_product = 0;
+    let mut max_height_diff_map = vec![];
+
     for i in 0..max {
-        let rock = ROCKS[i % ROCKS.len()];
-        let y_offset = highest_y(&rock_coords) + 4;
-        let insert_rock_coords = to_coords(rock, y_offset, 2);
-        rock_coords.push(insert_rock_coords);
+        tetris_drop(i, &wind, &mut jet_count, &mut rock_coords);
 
-        loop {
-            let jet = wind
-                .chars()
-                .nth(jet_count % wind.len())
-                .unwrap();
+        let height_map = delete_coords(&mut rock_coords);
+        let max = height_difference(&height_map);
 
-            jet_count += 1;
+        let u = max.iter().map(|n| n + 1).product::<usize>();
 
-            // The wind should push the latest rock to whichever
-            // direction
-            if can_push_wind_right(&rock_coords, jet) {
-                push_wind_right(rock_coords.last_mut().unwrap());
-            } else if can_push_wind_left(&rock_coords, jet) {
-                push_wind_left(rock_coords.last_mut().unwrap());
-            }
-
-            let can_fall = can_fall(&rock_coords);
-            // ... and then you should tumble
-            // but only if it fits
-            if can_fall {
-                fall_rock(rock_coords.last_mut().unwrap());
-            }
-
-            if !can_fall {
-                break;
-            }
+        if u > max_height_diff_map_product {
+            max_height_diff_map_product = u;
+            max_height_diff_map = max;
         }
-
-        delete_coords(&mut rock_coords);
-
-        //let i = height_map.iter().max().unwrap();
-        //println!("{:?}", height_map.iter().map(|n| i - n).collect::<Vec<usize>>());
     }
 
-    highest_y(&rock_coords)
+    max_height_diff_map
+}
+
+#[test]
+fn test_tetris_height_diff_map() {
+    assert_eq!(tetris_height_diff("test_input", 200), vec![21, 16, 6, 6, 0, 10, 14]);
+    assert_eq!(tetris_height_diff("input", 100), vec![26, 10, 6, 6, 0, 22, 61]);
+}
+
+fn height_difference(height_map: &Vec<usize>) -> Vec<usize> {
+    let max = height_map.iter().max().unwrap();
+
+    height_map
+        .iter()
+        .map(|n| max - n)
+        .collect::<Vec<usize>>()
+}
+
+fn tetris_drop(i: usize, wind: &String, jet_count: &mut usize, rock_coords: &mut Vec<Coords>) {
+    let rock = ROCKS[i % ROCKS.len()];
+    let y_offset = highest_y(&rock_coords) + 4;
+    let insert_rock_coords = to_coords(rock, y_offset, 2);
+    rock_coords.push(insert_rock_coords);
+
+    loop {
+        let jet = wind
+            .chars()
+            .nth(*jet_count % wind.len())
+            .unwrap();
+
+        *jet_count += 1;
+
+        // The wind should push the latest rock to whichever
+        // direction
+        if can_push_wind_right(&rock_coords, jet) {
+            push_wind_right(rock_coords.last_mut().unwrap());
+        } else if can_push_wind_left(&rock_coords, jet) {
+            push_wind_left(rock_coords.last_mut().unwrap());
+        }
+
+        let can_fall = can_fall(&rock_coords);
+        // ... and then you should tumble
+        // but only if it fits
+        if can_fall {
+            fall_rock(rock_coords.last_mut().unwrap());
+        }
+
+        if !can_fall {
+            break;
+        }
+    }
 }
 
 fn can_fall(coords: &Vec<Coords>) -> bool {
@@ -288,16 +344,11 @@ fn delete_coords(coords: &mut Vec<Coords>) -> Vec<usize> {
         }
     }
 
-    println!("{:?}", comb);
     coords.retain(|rock_shape| rock_shape.len() > 0);
     comb
 }
 
-#[test]
-fn test_tetris() {
-    assert_eq!(tetris("test_input", 2), 4);
-    assert_eq!(tetris("test_input", 2022), 3068);
-    //assert_eq!(tetris("test_input", 100_000), 3068);
-    //assert_eq!(tetris("test_input", 100_000), 3064);
-    //assert_eq!(tetris("test_input", 1_000_000_000_000), 1_514_285_714_288)
+fn parse_wind(file: &'static str) -> String {
+    let mut wind = fs::read_to_string(file).unwrap();
+    wind.trim().to_string()
 }
