@@ -38,7 +38,10 @@ fn part1(file: &'static str) -> usize {
         to_coords("#######", 0, 0)
     ];
 
-    for i in 0..MAX {
+    // Bug: it takes 2353 cycles to get to the height
+    // which is not the same as 2020 though.
+    for i in 0..25 {
+        println!("AT CYCLE {}", i);
         let rock = ROCKS[i % ROCKS.len()];
         let y_offset = highest_y(&rock_coords) + 4;
         let insert_rock_coords = to_coords(rock, y_offset, 2);
@@ -55,11 +58,9 @@ fn part1(file: &'static str) -> usize {
             // The wind should push the latest rock to whichever
             // direction
             if can_push_wind_right(&rock_coords, jet) {
-                push_wind_right(rock_coords.last_mut().unwrap())
+                push_wind_right(rock_coords.last_mut().unwrap());
             } else if can_push_wind_left(&rock_coords, jet) {
-                push_wind_left(rock_coords.last_mut().unwrap())
-            } else {
-                //println!("🍍 IDLE");
+                push_wind_left(rock_coords.last_mut().unwrap());
             }
 
             let can_fall = can_fall(&rock_coords);
@@ -73,9 +74,13 @@ fn part1(file: &'static str) -> usize {
                 break;
             }
         }
+
+        if i % 5 == 1 {
+            debug_chamber(&rock_coords);
+        }
     }
 
-    highest_y(&rock_coords) - 1
+    highest_y(&rock_coords)
 }
 
 fn can_fall(coords: &Vec<Coords>) -> bool {
@@ -84,22 +89,32 @@ fn can_fall(coords: &Vec<Coords>) -> bool {
     // Is the spot below empty
     let max_y = lowest_y_coords(last_inserted_rock);
     let mut fall = true;
-    let mut exes = vec![];
 
-    for (y, x) in last_inserted_rock {
-        if *y != max_y { continue }
+    let annoying_plus_sign = l % 5 == 2;
 
-        exes.push(x);
-    }
-
-    for i in 0..l {
+    'outer: for i in 0..l {
         for (y, x) in &coords[i] {
-            if *y != max_y - 1 {
+            if (y + 1) != max_y {
                 continue
             }
 
-            if exes.contains(&x)  {
-                fall = false
+            for (ly, lx) in last_inserted_rock {
+                //println!("Last: {} {}, Coord: {} {}", lx, ly - 1, x, y);
+                let cant_go_down = lx == x && *ly == (y + 1);
+                let cant_go_dl = lx > &0 && (lx - 1 == *x && *ly == (y + 1));
+                let cant_go_dr = lx + 1 == *x && *ly == (y + 1);
+
+                if annoying_plus_sign && (cant_go_down || cant_go_dr || cant_go_dl) {
+                    println!("~~~ DOWN {} {} {} {}", lx, ly, x, y + 1);
+                    fall = false;
+                    break 'outer;
+                }
+
+                if cant_go_down { //&& cant_go_dl && cant_go_dr {
+                    println!("DOWN {} {} {} {}", lx, ly, x, y + 1);
+                    fall = false;
+                    break 'outer;
+                }
             }
         }
     }
@@ -262,6 +277,6 @@ fn test_part1() {
 }
 
 fn part2(file: &'static str) -> usize {
-    let wind = fs::read_to_string(file).unwrap();
+    //let wind = fs::read_to_string(file).unwrap();
     0
 }
