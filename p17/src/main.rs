@@ -37,10 +37,7 @@ fn tetris(file: &'static str, max: usize) -> usize {
         to_coords("#######", 0, 0)
     ];
 
-    // Bug: it takes 2353 cycles to get to the height
-    // which is not the same as 2020 though.
     for i in 0..max {
-        println!("AT CYCLE {} {}", i, rock_coords.len());
         let rock = ROCKS[i % ROCKS.len()];
         let y_offset = highest_y(&rock_coords) + 4;
         let insert_rock_coords = to_coords(rock, y_offset, 2);
@@ -51,6 +48,10 @@ fn tetris(file: &'static str, max: usize) -> usize {
                 .chars()
                 .nth(jet_count % wind.len())
                 .unwrap();
+
+            if jet_count % wind.len() == 0 {
+                println!("rock index: {} wind index: {}", i % ROCKS.len(), jet_count % wind.len());
+            }
 
             jet_count += 1;
 
@@ -280,5 +281,7 @@ fn delete_coords(coords: &mut Vec<Coords>) {
 #[test]
 fn test_tetris() {
     assert_eq!(tetris("test_input", 2), 4);
-    assert_eq!(tetris("test_input", 2022), 3068)
+    assert_eq!(tetris("test_input", 1000), 3064);
+    assert_eq!(tetris("test_input", 2022), 3064);
+    //assert_eq!(tetris("test_input", 1_000_000_000_000), 1_514_285_714_288)
 }
