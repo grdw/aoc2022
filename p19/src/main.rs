@@ -1,6 +1,7 @@
 use std::fs;
 use regex::Regex;
 
+#[derive(Debug)]
 enum RobotType {
     Ore,
     Clay,
@@ -8,17 +9,20 @@ enum RobotType {
     Geode
 }
 
+#[derive(Debug)]
 enum Cost {
     Ore(u8),
     Clay(u8),
     Obsidian(u8)
 }
 
+#[derive(Debug)]
 struct Robot {
     robot_type: RobotType,
     costs: Vec<Cost>
 }
 
+#[derive(Debug)]
 struct Blueprint {
     robots: Vec<Robot>
 }
@@ -30,6 +34,7 @@ fn main() {
 
 fn part1(file: &'static str) -> usize {
     let blueprints = parse(file);
+    println!("{:?}", blueprints);
     0
 }
 
@@ -47,7 +52,7 @@ fn test_part2() {
     assert_eq!(part2("test_input"), 1);
 }
 
-fn parse(file: &'static str) {
+fn parse(file: &'static str) -> Vec<Blueprint> {
     let mut blueprints: Vec<Blueprint> = vec![];
     let re = Regex::new(r"Each ([a-z]+) robot costs ([a-z 0-9]+)").unwrap();
     let file = fs::read_to_string(file).unwrap();
@@ -91,4 +96,6 @@ fn parse(file: &'static str) {
 
         blueprints.push(Blueprint { robots: robots });
     }
+
+    blueprints
 }
