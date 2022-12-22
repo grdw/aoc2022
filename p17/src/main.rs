@@ -25,7 +25,7 @@ type Coords = Vec<(usize, usize)>;
 
 fn main() {
     println!("P1: {}", tetris("input", 2022));
-    println!("P2: {}", tetris("input", 1_000_000_000_000));
+    //println!("P2: {}", tetris("input", 1000));
 }
 
 fn tetris(file: &'static str, max: usize) -> usize {
@@ -48,10 +48,6 @@ fn tetris(file: &'static str, max: usize) -> usize {
                 .chars()
                 .nth(jet_count % wind.len())
                 .unwrap();
-
-            if jet_count % wind.len() == 0 {
-                println!("rock index: {} wind index: {}", i % ROCKS.len(), jet_count % wind.len());
-            }
 
             jet_count += 1;
 
@@ -76,6 +72,9 @@ fn tetris(file: &'static str, max: usize) -> usize {
         }
 
         delete_coords(&mut rock_coords);
+
+        //let i = height_map.iter().max().unwrap();
+        //println!("{:?}", height_map.iter().map(|n| i - n).collect::<Vec<usize>>());
     }
 
     highest_y(&rock_coords)
@@ -198,8 +197,11 @@ fn fall_rock(coords: &mut Coords) {
 
 fn debug_chamber(coords: &Vec<Coords>) {
     let mut chamber = vec![];
-    let height = highest_y(&coords);
+    let low_height = lowest_y(&coords);
+    let height = highest_y(&coords) + 1;
+    let h = (height - low_height);
 
+    println!("{:?}", h);
     for _ in 0..=height {
         let mut chamber_line = vec![];
         for _ in 0..CHAMBER_WIDTH {
@@ -218,6 +220,17 @@ fn debug_chamber(coords: &Vec<Coords>) {
     for l in chamber {
         println!("{}", l.into_iter().collect::<String>());
     }
+}
+
+fn lowest_y(coords: &Vec<Coords>) -> usize {
+    let mut min_y = usize::MAX;
+    for coords in coords {
+        let y = highest_y_coords(coords);
+        if y < min_y {
+            min_y = y
+        }
+    }
+    min_y
 }
 
 fn highest_y(coords: &Vec<Coords>) -> usize {
@@ -251,7 +264,7 @@ fn lowest_y_coords(coords: &Coords) -> usize {
     min_y
 }
 
-fn delete_coords(coords: &mut Vec<Coords>) {
+fn delete_coords(coords: &mut Vec<Coords>) -> Vec<usize> {
     let mut comb = vec![0;7];
     let coords_len = coords.len();
 
@@ -269,19 +282,22 @@ fn delete_coords(coords: &mut Vec<Coords>) {
         for i in (0..rock_shape.len()).rev() {
             let (y, x) = &rock_shape[i];
 
-            if comb[*x] > (*y + 4) {
+            if comb[*x] > (*y + 25) {
                 rock_shape.remove(i);
             }
         }
     }
 
+    println!("{:?}", comb);
     coords.retain(|rock_shape| rock_shape.len() > 0);
+    comb
 }
 
 #[test]
 fn test_tetris() {
     assert_eq!(tetris("test_input", 2), 4);
-    assert_eq!(tetris("test_input", 1000), 3064);
-    assert_eq!(tetris("test_input", 2022), 3064);
+    assert_eq!(tetris("test_input", 2022), 3068);
+    //assert_eq!(tetris("test_input", 100_000), 3068);
+    //assert_eq!(tetris("test_input", 100_000), 3064);
     //assert_eq!(tetris("test_input", 1_000_000_000_000), 1_514_285_714_288)
 }
