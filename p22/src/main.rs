@@ -57,76 +57,43 @@ fn walk(map: &MonkeyMap, start: &mut Point, steps: u8, dir: char) {
     let width = (n_max_x + 1) - n_min_x;
 
     for _ in 0..steps {
-        let mut next_wall = false;
-        match dir {
-            'v' => {
-                let next = n_min_y + (start.y + 1) % height;
-
-                next_wall = map
-                    .iter()
-                    .find(|p| p.x == start.x && p.y == next && p.wall)
-                    .is_some();
-
-                if next_wall {
-                    break;
-                }
-
-                //println!("v {:?}", start);
-                start.y = next;
-            },
+        let (nx, ny) = match dir {
+            'v' => (start.x, n_min_y + (start.y + 1) % height),
+            '>' => (n_min_x + (start.x + 1) % width, start.y),
             '<' => {
-                let next = if start.x == 0 {
-                    n_min_x + n_max_x % width
-                } else {
-                    n_min_x + (start.x - 1) % width
-                };
+                let next =
+                    if start.x == 0 {
+                        n_min_x + n_max_x % width
+                    } else {
+                        n_min_x + (start.x - 1) % width
+                    };
 
-                next_wall = map
-                    .iter()
-                    .find(|p| p.x == next && p.y == start.y && p.wall)
-                    .is_some();
-
-                if next_wall {
-                    break;
-                }
-                //println!("< {:?}", start);
-                start.x = next;
+                (next, start.y)
             },
             '^' => {
-                let next = if start.y == 0 {
-                    n_min_y + n_max_y % height
-                } else {
-                    n_min_y + (start.y - 1) % height
-                };
+                let next =
+                    if start.y == 0 {
+                        n_min_y + n_max_y % height
+                    } else {
+                        n_min_y + (start.y - 1) % height
+                    };
 
-                next_wall = map
-                    .iter()
-                    .find(|p| p.x == start.x && p.y == next && p.wall)
-                    .is_some();
-
-                if next_wall {
-                    break;
-                }
-                //println!("^ {:?}", start);
-                start.y = next;
-            },
-            '>' => {
-                let next = n_min_x + (start.x + 1) % width;
-
-                next_wall = map
-                    .iter()
-                    .find(|p| p.x == next && p.y == start.y && p.wall)
-                    .is_some();
-
-                if next_wall {
-                    break;
-                }
-
-                start.x = next;
-                //println!("> {:?}", start);
+                (start.x, next)
             },
             _ => panic!("BOOM!")
+        };
+
+        let next_wall = map
+            .iter()
+            .find(|p| p.x == nx && p.y == ny && p.wall)
+            .is_some();
+
+        if next_wall {
+            break;
         }
+
+        start.x = nx;
+        start.y = ny;
 
     }
 }
