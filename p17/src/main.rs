@@ -29,13 +29,17 @@ fn main() {
 }
 
 fn part1(file: &'static str) -> usize {
+    tetris_simulator(file, 2022)
+}
+
+fn tetris_simulator(file: &'static str, max: usize) -> usize {
     let wind = parse_wind(file);
     let mut jet_count = 0;
     let mut rock_coords: Vec<Coords> = vec![
         to_coords("#######", 0, 0)
     ];
 
-    for i in 0..2022 {
+    for i in 0..max {
         tetris_drop(i, &wind, &mut jet_count, &mut rock_coords);
         delete_coords(&mut rock_coords);
     }
@@ -49,8 +53,20 @@ fn test_part1() {
 }
 
 fn part2(file: &'static str) -> usize {
-    let highest_map = tetris_height_diff(file, 100);
-    0
+    let rock_index = 1_000_000_000_000;
+    let (block_index, tower_height, highest_map) = tetris_height_diff(file, 100);
+    let (next_block_index, next_tower_height) = tetris_next_height_diff(file, highest_map, block_index);
+    let diff_index = next_block_index - block_index;
+    let diff_height = next_tower_height - tower_height;
+    let l = rock_index - block_index; // height = tower_height
+
+    // Start from the start height
+    let mut total_height = tower_height;
+    let (div, m) = ((l / diff_index), (l % diff_index));
+    total_height += div * diff_height;
+    // divide whatever you have leftover by the diff_index
+    let rest = tetris_simulator(file, block_index + m) - tower_height;
+    total_height + rest
 }
 
 #[test]
@@ -58,7 +74,7 @@ fn test_part2() {
     assert_eq!(part2("test_input"), 1514285714288);
 }
 
-fn tetris_height_diff(file: &'static str, max: usize) -> Vec<usize> {
+fn tetris_height_diff(file: &'static str, max: usize) -> (usize, usize, Vec<usize>) {
     let wind = parse_wind(file);
 
     let mut jet_count = 0;
@@ -66,6 +82,8 @@ fn tetris_height_diff(file: &'static str, max: usize) -> Vec<usize> {
         to_coords("#######", 0, 0)
     ];
 
+    let mut tower_height = 0;
+    let mut max_height_index = 0;
     let mut max_height_diff_map_product = 0;
     let mut max_height_diff_map = vec![];
 
@@ -79,17 +97,55 @@ fn tetris_height_diff(file: &'static str, max: usize) -> Vec<usize> {
 
         if u > max_height_diff_map_product {
             max_height_diff_map_product = u;
+            max_height_index = i;
             max_height_diff_map = max;
+            tower_height = highest_y(&rock_coords);
         }
     }
 
-    max_height_diff_map
+    (max_height_index, tower_height, max_height_diff_map)
+}
+
+fn tetris_next_height_diff(file: &'static str, map: Vec<usize>, skip: usize) -> (usize, usize) {
+    let wind = parse_wind(file);
+
+    let mut jet_count = 0;
+    let mut rock_coords: Vec<Coords> = vec![
+        to_coords("#######", 0, 0)
+    ];
+
+    let mut i = 0;
+    let mut max_height = 0;
+    let mut next_height_index = 0;
+
+    loop {
+        tetris_drop(i, &wind, &mut jet_count, &mut rock_coords);
+
+        let height_map = delete_coords(&mut rock_coords);
+        let max = height_difference(&height_map);
+
+        if i > skip && max == map {
+            next_height_index = i;
+            max_height = highest_y(&rock_coords);
+            break;
+        }
+
+        i += 1;
+    }
+
+    (next_height_index, max_height)
 }
 
 #[test]
 fn test_tetris_height_diff_map() {
-    assert_eq!(tetris_height_diff("test_input", 200), vec![21, 16, 6, 6, 0, 10, 14]);
-    assert_eq!(tetris_height_diff("input", 100), vec![26, 10, 6, 6, 0, 22, 61]);
+    assert_eq!(
+        tetris_height_diff("test_input", 200),
+        (53, 89, vec![21, 16, 6, 6, 0, 10, 14])
+    );
+    assert_eq!(
+        tetris_height_diff("input", 100),
+        (88, 142, vec![26, 10, 6, 6, 0, 22, 61])
+    );
 }
 
 fn height_difference(height_map: &Vec<usize>) -> Vec<usize> {
