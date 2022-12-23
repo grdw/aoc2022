@@ -8,19 +8,20 @@ type Instructions = HashMap<String, Vec<TreeBuildInstruction>>;
 
 #[derive(Debug)]
 enum TreeBuildInstruction {
-    AddNumber(u64),
+    AddNumber(i64),
     AddOp(char),
     AddChild(String),
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 enum Instruction {
-    Number(u64),
+    Number(i64),
     Op(char)
 }
 
 #[derive(Debug)]
 struct Node {
+    name: String,
     children: Vec<RNode>,
     instruction: Instruction
 }
@@ -29,15 +30,15 @@ impl Node {
     fn rc_root() -> RNode {
         Rc::new(
             RefCell::new(
-                Node::node(Instruction::Number(0))
+                Node::node(String::from("rc_root"), Instruction::Number(0))
             )
         )
     }
 
-    fn add_child(&mut self, instruction: Instruction) -> RNode {
+    fn add_child(&mut self, name: String, instruction: Instruction) -> RNode {
         let rc = Rc::new(
             RefCell::new(
-                Node::node(instruction)
+                Node::node(name, instruction)
             )
         );
 
@@ -45,7 +46,7 @@ impl Node {
         rc
     }
 
-    fn operate(&self) -> u64 {
+    fn operate(&self) -> i64 {
         let mut nums = vec![];
         for child in &self.children {
             match child.borrow().instruction {
@@ -59,13 +60,22 @@ impl Node {
             Instruction::Op('*') => nums[0] * nums[1],
             Instruction::Op('/') => nums[0] / nums[1],
             Instruction::Op('-') => nums[0] - nums[1],
+            Instruction::Op('=') => {
+                if nums[0] == nums[1] {
+                    0
+                } else {
+                    println!("{:?}", nums);
+                    1
+                }
+            },
             Instruction::Number(val) => val,
             _ => panic!("Invalid")
         }
     }
 
-    fn node(instruction: Instruction) -> Node {
+    fn node(name: String, instruction: Instruction) -> Node {
         Node {
+            name: name,
             children: vec![],
             instruction: instruction
         }
@@ -79,7 +89,7 @@ impl Node {
         self.children.is_empty()
     }
 
-    fn read_value(&self) -> Option<u64> {
+    fn read_value(&self) -> Option<i64> {
         match &self.children[0].as_ref().borrow().instruction {
             Instruction::Number(n) => Some(*n),
             _ => None
@@ -92,8 +102,8 @@ fn main() {
     println!("Part 2: {}", part2("input"));
 }
 
-fn part1(file: &'static str) -> u64 {
-    let contents = parse(file);
+fn part1(file: &'static str) -> i64 {
+    let contents = parse(file, 1);
     let node = Node::rc_root();
 
     build_tree(node.clone(), &contents, "root".to_string());
@@ -105,7 +115,7 @@ fn build_tree(node: RNode, contents: &Instructions, node_name: String) {
 
     match &list[0] {
         TreeBuildInstruction::AddOp(op) => {
-            let p = node.borrow_mut().add_child(Instruction::Op(*op));
+            let p = node.borrow_mut().add_child(node_name, Instruction::Op(*op));
 
             for item in &list[1..] {
                 if let TreeBuildInstruction::AddChild(name) = item {
@@ -115,7 +125,7 @@ fn build_tree(node: RNode, contents: &Instructions, node_name: String) {
         },
 
         TreeBuildInstruction::AddNumber(n) => {
-            node.borrow_mut().add_child(Instruction::Number(*n));
+            node.borrow_mut().add_child(node_name, Instruction::Number(*n));
         },
         _ => ()
     }
@@ -126,8 +136,74 @@ fn test_part1() {
     assert_eq!(part1("test_input"), 152);
 }
 
-fn part2(file: &'static str) -> usize {
-    0
+fn part2(file: &'static str) -> i64 {
+    let contents = parse(file, 2);
+    let node = Node::rc_root();
+
+    build_tree(node.clone(), &contents, "root".to_string());
+    loop {
+        let value = recurse_collapse(node.clone());
+        println!("{:?}", value);
+        if value == 0 {
+            break;
+        }
+
+        // For the example
+        increase_node_value_at(node.clone(), String::from("humn"));
+    }
+
+    let mut answer = 0;
+    get_node_value_at(node.clone(), String::from("humn"), &mut answer);
+    answer
+}
+
+fn get_node_value_at(rc_node: RNode, name: String, value: &mut i64) {
+    let node = rc_node.borrow_mut();
+
+    if node.name == name {
+        if let Instruction::Number(n) = node.instruction {
+            *value = n;
+        }
+    }
+
+    for i in 0..node.children.len() {
+        get_node_value_at(node.children[i].clone(), name.to_string(), value);
+    }
+}
+
+fn increase_node_value_at(rc_node: RNode, name: String) {
+    let mut node = rc_node.borrow_mut();
+
+    if node.name == name {
+        if let Instruction::Number(n) = node.instruction {
+            node.instruction = Instruction::Number(n + 1);
+        }
+        return
+    } else {
+        for i in 0..node.children.len() {
+            increase_node_value_at(node.children[i].clone(), name.to_string())
+        }
+    }
+}
+
+fn decrease_node_value_at(rc_node: RNode, name: String) {
+    let mut node = rc_node.borrow_mut();
+
+    if node.name == name {
+        if let Instruction::Number(n) = node.instruction {
+            node.instruction = Instruction::Number(n + 1);
+        }
+        return
+    } else {
+        for i in 0..node.children.len() {
+            increase_node_value_at(node.children[i].clone(), name.to_string())
+        }
+    }
+}
+
+#[test]
+fn test_part2() {
+    assert_eq!(part2("test_input"), 301);
 }
 
 fn collapse(rc_node: RNode, result: RNode) -> RNode {
@@ -135,12 +211,12 @@ fn collapse(rc_node: RNode, result: RNode) -> RNode {
 
     if node.all_leafs() {
         let val = node.operate();
-        result.borrow_mut().add_child(Instruction::Number(val));
+        result.borrow_mut().add_child(node.name.to_string(), Instruction::Number(val));
         result
     } else {
         let n = match node.instruction {
             Instruction::Op(n) => {
-                result.borrow_mut().add_child(Instruction::Op(n))
+                result.borrow_mut().add_child(node.name.to_string(), Instruction::Op(n))
             },
             _ => result.clone()
         };
@@ -152,7 +228,7 @@ fn collapse(rc_node: RNode, result: RNode) -> RNode {
     }
 }
 
-fn recurse_collapse(rc_node: RNode) -> u64 {
+fn recurse_collapse(rc_node: RNode) -> i64 {
     if let Some(n) = rc_node.borrow().read_value() {
         n
     } else {
@@ -165,9 +241,9 @@ fn recurse_collapse(rc_node: RNode) -> u64 {
 #[test]
 fn test_unwind_sum() {
     let root = Node::rc_root();
-    let add_root = root.borrow_mut().add_child(Instruction::Op('+'));
-    add_root.borrow_mut().add_child(Instruction::Number(25));
-    add_root.borrow_mut().add_child(Instruction::Number(10));
+    let add_root = root.borrow_mut().add_child(String::from("B"), Instruction::Op('+'));
+    add_root.borrow_mut().add_child(String::from("A"), Instruction::Number(25));
+    add_root.borrow_mut().add_child(String::from("A"), Instruction::Number(10));
 
     let new_node = Node::rc_root();
     collapse(root, new_node.clone());
@@ -177,11 +253,25 @@ fn test_unwind_sum() {
 }
 
 #[test]
+fn test_unwind_equals() {
+    let root = Node::rc_root();
+    let add_root = root.borrow_mut().add_child(String::from("A"), Instruction::Op('='));
+    add_root.borrow_mut().add_child(String::from("A"), Instruction::Number(25));
+    add_root.borrow_mut().add_child(String::from("A"), Instruction::Number(25));
+
+    let new_node = Node::rc_root();
+    collapse(root, new_node.clone());
+    let number = new_node.borrow().read_value();
+
+    assert_eq!(number, Some(1));
+}
+
+#[test]
 fn test_unwind_min() {
     let root = Node::rc_root();
-    let add_root = root.borrow_mut().add_child(Instruction::Op('-'));
-    add_root.borrow_mut().add_child(Instruction::Number(25));
-    add_root.borrow_mut().add_child(Instruction::Number(10));
+    let add_root = root.borrow_mut().add_child(String::from("A"), Instruction::Op('-'));
+    add_root.borrow_mut().add_child(String::from("A"), Instruction::Number(25));
+    add_root.borrow_mut().add_child(String::from("A"), Instruction::Number(10));
 
     let new_node = Node::rc_root();
     collapse(root, new_node.clone());
@@ -193,9 +283,9 @@ fn test_unwind_min() {
 #[test]
 fn test_unwind_divide() {
     let root = Node::rc_root();
-    let add_root = root.borrow_mut().add_child(Instruction::Op('/'));
-    add_root.borrow_mut().add_child(Instruction::Number(100));
-    add_root.borrow_mut().add_child(Instruction::Number(10));
+    let add_root = root.borrow_mut().add_child(String::from("A"), Instruction::Op('/'));
+    add_root.borrow_mut().add_child(String::from("B"), Instruction::Number(100));
+    add_root.borrow_mut().add_child(String::from("C"), Instruction::Number(10));
 
     let new_node = Node::rc_root();
     collapse(root, new_node.clone());
@@ -207,30 +297,35 @@ fn test_unwind_divide() {
 #[test]
 fn test_unwind_multiply() {
     let root = Node::rc_root();
-    let mul1 = root.borrow_mut().add_child(Instruction::Op('*'));
-    let add1 = mul1.borrow_mut().add_child(Instruction::Op('+'));
-    let add2 = mul1.borrow_mut().add_child(Instruction::Op('+'));
-    add1.borrow_mut().add_child(Instruction::Number(5));
-    add1.borrow_mut().add_child(Instruction::Number(2));
-    add2.borrow_mut().add_child(Instruction::Number(6));
-    add2.borrow_mut().add_child(Instruction::Number(4));
+    let mul1 = root.borrow_mut().add_child(String::from("A"), Instruction::Op('*'));
+    let add1 = mul1.borrow_mut().add_child(String::from("B"), Instruction::Op('+'));
+    let add2 = mul1.borrow_mut().add_child(String::from("C"), Instruction::Op('+'));
+    add1.borrow_mut().add_child(String::from("BA"), Instruction::Number(5));
+    add1.borrow_mut().add_child(String::from("BB"), Instruction::Number(2));
+    add2.borrow_mut().add_child(String::from("CA"), Instruction::Number(6));
+    add2.borrow_mut().add_child(String::from("CB"), Instruction::Number(4));
 
     assert_eq!(recurse_collapse(root), 70);
 }
 
-fn parse(file: &'static str) -> Instructions {
+fn parse(file: &'static str, part: usize) -> Instructions {
     let contents = fs::read_to_string(file).unwrap();
     let mut inst_map = HashMap::new();
 
     for line in contents.split_terminator("\n") {
         let (name, instruction) = line.split_once(": ").unwrap();
 
-        let parse = instruction.parse::<u64>();
+        let parse = instruction.parse::<i64>();
 
         let n = if parse.is_err() {
             let left = &instruction[0..4];
             let right = &instruction[7..11];
-            let calc = instruction.chars().nth(5).unwrap();
+            let mut calc = instruction.chars().nth(5).unwrap();
+
+            if name == "root" && part == 2 {
+                calc = '=';
+            }
+
             vec![
                 TreeBuildInstruction::AddOp(calc),
                 TreeBuildInstruction::AddChild(left.to_string()),
