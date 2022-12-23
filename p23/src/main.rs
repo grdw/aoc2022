@@ -171,26 +171,20 @@ fn part1(file: &'static str) -> usize {
 }
 
 fn empty_ground_tiles(elfs: &Vec<Elf>) -> usize {
-    let mut count = 0;
     let min_x = elfs.iter().map(|e| e.x).min().unwrap();
     let max_x = elfs.iter().map(|e| e.x).max().unwrap();
     let min_y = elfs.iter().map(|e| e.y).min().unwrap();
     let max_y = elfs.iter().map(|e| e.y).max().unwrap();
+    let height = (max_x + 1 - min_x);
+    let width = (max_y + 1 - min_y);
 
-    for y in min_y..=max_y {
-        for x in min_x..=max_x {
-            if elfs.iter().find(|e| e.x == x && e.y == y).is_none() {
-                count += 1;
-            }
-        }
-    }
-    count
+    ((height * width) - elfs.len() as isize) as usize
 }
 
 #[test]
 fn test_part1() {
-    //assert_eq!(part1("test_input"), 110);
-    //assert_eq!(part1("test_input2"), 25);
+    assert_eq!(part1("test_input"), 110);
+    assert_eq!(part1("test_input2"), 25);
     assert_eq!(part1("test_input3"), 812);
 }
 
