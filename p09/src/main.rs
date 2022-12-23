@@ -28,8 +28,6 @@ fn walk(directions: &Directions) -> usize {
     let (mut tx, mut ty) = (0, 0);
     let mut spots: Spots = HashSet::new();
 
-    println!("======== INITIAL STATE:");
-    debug_grid(hx, hy, tx, ty);
     for (dir, steps) in directions {
         for _ in 0..*steps {
             // These are all the positions H is in:
@@ -66,26 +64,39 @@ fn walk(directions: &Directions) -> usize {
                 }
             }
 
-            println!("{} {} {} {}", hx, hy, tx, ty);
-            debug_grid(hx, hy, tx, ty);
+            spots.insert((tx, ty));
         };
     }
 
     spots.len()
+}
 
+#[test]
+fn test_walk() {
+    let directions = vec![('R', 1), ('U', 2)];
+    assert_eq!(walk(&directions), 2);
+
+    let directions = vec![('U', 1), ('R', 2)];
+    assert_eq!(walk(&directions), 2);
+
+    let directions = vec![('D', 1), ('L', 2)];
+    assert_eq!(walk(&directions), 2);
+
+    let directions = vec![('D', 2), ('L', 1)];
+    assert_eq!(walk(&directions), 2);
 }
 
 fn debug_grid(hx: isize, hy: isize, tx: isize, ty: isize) {
-    let min_x = vec![hx, tx].into_iter().min().unwrap();
-    let max_x = vec![hx, tx].into_iter().max().unwrap() + 4;
-    let min_y = vec![hy, ty].into_iter().min().unwrap();
-    let max_y = vec![hy, ty].into_iter().max().unwrap() + 4;
+    let min_x = vec![hx, tx, 0].into_iter().min().unwrap() - 1;
+    let max_x = vec![hx, tx, 0].into_iter().max().unwrap() + 1;
+    let min_y = vec![hy, ty, 0].into_iter().min().unwrap() - 1;
+    let max_y = vec![hy, ty, 0].into_iter().max().unwrap() + 1;
 
-    for i in min_y..=max_y {
+    for i in (min_y..=max_y).rev() {
         let mut row = String::new();
         for j in min_x..=max_x {
-            let c = if i == (max_y - hy) && j == hx { 'H' }
-                    else if i == (max_y - ty) && j == tx { 'T' }
+            let c = if i == hy && j == hx { 'H' }
+                    else if i == ty && j == tx { 'T' }
                     else { '.' };
 
             row.push(c);
@@ -115,8 +126,8 @@ fn parse(input: &'static str) -> Directions {
 	let file = fs::read_to_string(input).unwrap();
 
     file.split_terminator("\n").map(|line| {
-        let chars: Vec<char> = line.chars().collect();
+        let (dir, num) = line.split_once(" ").unwrap();
 
-        (chars[0], (chars[2] as u8 - 48) as isize)
+        (dir.chars().nth(0).unwrap(), num.parse::<isize>().unwrap())
     }).collect()
 }
