@@ -1,21 +1,16 @@
 use std::fs;
 use std::cmp;
-use std::collections::HashMap;
+use std::collections::HashSet;
 
 type Directions = Vec<(char, isize)>;
-type Spots = HashMap<String, u64>;
+type Spots = HashSet<(isize, isize)>;
 
 #[derive(Debug, PartialEq)]
 enum Dir {
     UP,
     DOWN,
     LEFT,
-    RIGHT,
-    UPLEFT,
-    UPRIGHT,
-    DOWNLEFT,
-    DOWNRIGHT,
-    IDLE
+    RIGHT
 }
 
 fn main() {
@@ -25,14 +20,17 @@ fn main() {
 
 fn part1(input: &'static str) -> usize {
     let directions = parse(input);
+    walk(&directions)
+}
+
+fn walk(directions: &Directions) -> usize {
     let (mut hx, mut hy) = (0, 0);
     let (mut tx, mut ty) = (0, 0);
-    let mut spots: Spots = HashMap::new();
+    let mut spots: Spots = HashSet::new();
 
-    //spots.insert("00".to_string(), 1);
-
-    for (dir, steps) in &directions {
-        println!("========= {} {}", dir, steps);
+    println!("======== INITIAL STATE:");
+    debug_grid(hx, hy, tx, ty);
+    for (dir, steps) in directions {
         for _ in 0..*steps {
             // These are all the positions H is in:
             match dir {
@@ -43,82 +41,59 @@ fn part1(input: &'static str) -> usize {
                 _ => panic!("BOOYA")
             };
 
-            let x_diff = (hx - tx) as isize;
-            let y_diff = (hy - ty) as isize;
 
-            let d = match (x_diff, y_diff) {
-                (-2, 0) => Dir::LEFT,
-                (-2, 1) => Dir::UPLEFT,
-                (-2, -1) => Dir::DOWNLEFT,
-                (2, 0) => Dir::RIGHT,
-                (2, 1) => Dir::UPRIGHT,
-                (2, -1) => Dir::DOWNRIGHT,
-                (0, -2) => Dir::DOWN,
-                (1, -2) => Dir::DOWNRIGHT,
-                (-1, -2) => Dir::DOWNLEFT,
-                (0, 2) => Dir::UP,
-                (1, 2) => Dir::UPRIGHT,
-                (-1, 2) => Dir::UPLEFT,
-                (_, _) => Dir::IDLE
+            let x_diff = hx - tx;
+            let y_diff = hy - ty;
+
+            let dirs = match (x_diff, y_diff) {
+                (2, 0)              => vec![Dir::RIGHT],
+                (-2, 0)             => vec![Dir::LEFT],
+                (0, 2)              => vec![Dir::UP],
+                (0, -2)             => vec![Dir::DOWN],
+                (1, 2) | (2, 1)     => vec![Dir::UP, Dir::RIGHT],
+                (1, -2) | (2, -1)   => vec![Dir::DOWN, Dir::RIGHT],
+                (-1, 2) | (-2, 1)   => vec![Dir::UP, Dir::LEFT],
+                (-1, -2) | (-2, -1) => vec![Dir::DOWN, Dir::LEFT],
+                _                   => vec![]
             };
 
-            if d != Dir::IDLE {
-                print!("✨ {:?} @", d);
-                //println!("{:?} H: ({},{}) T: ({},{})", d, hx, hy, tx, ty);
+            for d in &dirs {
+                match d {
+                    Dir::UP    => ty += 1,
+                    Dir::DOWN  => ty -= 1,
+                    Dir::LEFT  => tx -= 1,
+                    Dir::RIGHT => tx += 1
+                }
             }
 
-            match d {
-                Dir::UP => ty += 1,
-                Dir::DOWN => ty -= 1,
-                Dir::LEFT => tx -= 1,
-                Dir::RIGHT => tx += 1,
-                Dir::UPLEFT => {
-                    tx -= 1;
-                    ty += 1;
-                },
-                Dir::UPRIGHT => {
-                    tx += 1;
-                    ty += 1;
-                },
-                Dir::DOWNLEFT => {
-                    tx -= 1;
-                    ty -= 1;
-                },
-                Dir::DOWNRIGHT => {
-                    tx += 1;
-                    ty -= 1;
-                },
-                _ => {},
-            }
-
-            println!("--------- {} {}", x_diff, y_diff);
+            println!("{} {} {} {}", hx, hy, tx, ty);
             debug_grid(hx, hy, tx, ty);
-
-            let key = format!("{}-{}", tx, ty);
-            spots.entry(key).and_modify(|n| *n += 1).or_insert(1);
         };
     }
 
-    spots.keys().len()
+    spots.len()
+
 }
 
 fn debug_grid(hx: isize, hy: isize, tx: isize, ty: isize) {
-    let min_x = vec![hx, tx, 0].into_iter().min().unwrap();
-    let max_x = vec![hx, tx, 0].into_iter().max().unwrap();
-    let min_y = vec![hy, ty, 0].into_iter().min().unwrap();
-    let max_y = vec![hy, ty, 0].into_iter().max().unwrap();
+    let min_x = vec![hx, tx].into_iter().min().unwrap();
+    let max_x = vec![hx, tx].into_iter().max().unwrap() + 4;
+    let min_y = vec![hy, ty].into_iter().min().unwrap();
+    let max_y = vec![hy, ty].into_iter().max().unwrap() + 4;
 
-    for i in ((min_y -2)..=max_y + 1).rev() {
+    for i in min_y..=max_y {
         let mut row = String::new();
-        for j in (min_x - 2)..=max_x + 1 {
-            let c = if i == hy && j == hx { 'H' }
-                    else if i == ty && j == tx { 'T' }
+        for j in min_x..=max_x {
+            let c = if i == (max_y - hy) && j == hx { 'H' }
+                    else if i == (max_y - ty) && j == tx { 'T' }
                     else { '.' };
 
             row.push(c);
         }
         println!("{}", row)
     }
+
+    println!("");
 }
 
 #[test]
