@@ -168,8 +168,8 @@ fn empty_ground_tiles(elfs: &Vec<Elf>) -> usize {
     let max_x = elfs.iter().map(|e| e.x).max().unwrap();
     let min_y = elfs.iter().map(|e| e.y).min().unwrap();
     let max_y = elfs.iter().map(|e| e.y).max().unwrap();
-    let height = (max_x + 1 - min_x);
-    let width = (max_y + 1 - min_y);
+    let height = max_x + 1 - min_x;
+    let width = max_y + 1 - min_y;
 
     ((height * width) - elfs.len() as isize) as usize
 }
@@ -182,13 +182,59 @@ fn test_part1() {
 }
 
 fn part2(file: &'static str) -> isize {
-    let points = parse(file);
-    0
+    let mut elfs = parse(file);
+    let mut considered_directions = VecDeque::from(['N', 'S', 'W', 'E']);
+
+    let empty = vec![0; TRANSFORMATIONS.len()];
+    let mut counter = 0;
+
+    loop {
+        let mut move_set: HashMap<(isize, isize), Vec<usize>> = HashMap::new();
+        let mut stop = true;
+
+        for elf in &elfs {
+            let c = elf.no_elfs_in_dirs(&elfs);
+
+            if &c == &empty {
+                continue
+            }
+
+            stop = false;
+            let direction = elf.proposed_direction(&c, &considered_directions);
+            let (elf_dx, elf_dy) = elf.to_coords(&direction);
+
+            move_set
+                .entry((elf_dx, elf_dy))
+                .and_modify(|value| value.push(elf.id))
+                .or_insert(vec![elf.id]);
+        }
+
+        considered_directions.rotate_left(1);
+
+        move_set.retain(|_, v| v.len() < 2);
+
+        for elf in &mut elfs {
+            for ((x, y), elf_ids) in &move_set {
+                if elf.id == elf_ids[0] {
+                    elf.x = *x;
+                    elf.y = *y;
+                }
+            }
+        }
+
+        counter += 1;
+
+        if stop {
+            break;
+        }
+    }
+
+    counter
 }
 
 #[test]
 fn test_part2() {
-    assert_eq!(part2("test_input"), 1);
+    assert_eq!(part2("test_input"), 20);
 }
 
 fn parse(file: &'static str) -> Vec<Elf> {
