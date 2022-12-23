@@ -20,38 +20,43 @@ fn main() {
 
 fn part1(input: &'static str) -> usize {
     let directions = parse(input);
-    walk(&directions)
+    walk(&directions, 2)
 }
 
-fn walk(directions: &Directions) -> usize {
-    let (mut hx, mut hy) = (0, 0);
-    let (mut tx, mut ty) = (0, 0);
+fn walk(directions: &Directions, knot_count: usize) -> usize {
+    let mut knots = vec![(0,0); knot_count];
     let mut spots: Spots = HashSet::new();
 
     for (dir, steps) in directions {
         for _ in 0..*steps {
             // These are all the positions H is in:
             match dir {
-                'L' => hx -= 1,
-                'R' => hx += 1,
-                'D' => hy -= 1,
-                'U' => hy += 1,
+                'L' => knots[0].0 -= 1,
+                'R' => knots[0].0 += 1,
+                'D' => knots[0].1 -= 1,
+                'U' => knots[0].1 += 1,
                 _ => panic!("BOOYA")
             };
 
 
-            let dirs = get_dirs(hx - tx, hy - ty);
+            for i in 0..knot_count-1 {
+                let h = knots[i];
+                let t = &mut knots[i + 1];
+                let dirs = get_dirs(h.0 - t.0, h.1 - t.1);
+                for d in &dirs {
+                    match d {
+                        Dir::UP    => t.1 += 1,
+                        Dir::DOWN  => t.1 -= 1,
+                        Dir::LEFT  => t.0 -= 1,
+                        Dir::RIGHT => t.0 += 1
+                    }
+                }
 
-            for d in &dirs {
-                match d {
-                    Dir::UP    => ty += 1,
-                    Dir::DOWN  => ty -= 1,
-                    Dir::LEFT  => tx -= 1,
-                    Dir::RIGHT => tx += 1
+                if i + 1 == knot_count - 1 {
+                    spots.insert(*t);
                 }
             }
 
-            spots.insert((tx, ty));
         };
     }
 
@@ -75,16 +80,19 @@ fn get_dirs(x_diff: isize, y_diff: isize) -> Vec<Dir> {
 #[test]
 fn test_walk() {
     let directions = vec![('R', 1), ('U', 2)];
-    assert_eq!(walk(&directions), 2);
+    assert_eq!(walk(&directions, 2), 2);
 
     let directions = vec![('U', 1), ('R', 2)];
-    assert_eq!(walk(&directions), 2);
+    assert_eq!(walk(&directions, 2), 2);
 
     let directions = vec![('D', 1), ('L', 2)];
-    assert_eq!(walk(&directions), 2);
+    assert_eq!(walk(&directions, 2), 2);
 
     let directions = vec![('D', 2), ('L', 1)];
-    assert_eq!(walk(&directions), 2);
+    assert_eq!(walk(&directions, 2), 2);
+
+    let directions = parse("test_input2");
+    assert_eq!(walk(&directions, 10), 36);
 }
 
 fn debug_grid(hx: isize, hy: isize, tx: isize, ty: isize) {
