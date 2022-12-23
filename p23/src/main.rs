@@ -16,27 +16,27 @@ struct Elf {
 
 impl Elf {
     fn no_elfs_in_dirs(&self, elfs: &Vec<Elf>) -> Vec<u8> {
-        let mut comb = vec![];
+        let mut comb = vec![0; TRANSFORMATIONS.len()];
 
-        for (tx, ty) in &TRANSFORMATIONS {
+        for (i, (tx, ty)) in TRANSFORMATIONS.iter().enumerate() {
             let elf_tx = self.x + tx;
             let elf_ty = self.y + ty;
             let mut elf_present = false;
 
             for c_elf in elfs {
-                if c_elf.x == self.x && c_elf.y == self.y {
-                    continue
-                }
-
                 if elf_tx == c_elf.x && elf_ty == c_elf.y {
                     elf_present = true;
                     break;
                 }
             }
 
-            let c = if elf_present { 1 } else { 0 };
+            if elf_present {
+                comb[i] = 1;
+            }
+        }
 
-            comb.push(c);
+        if comb.len() != TRANSFORMATIONS.len() {
+            panic!("Invalid comb");
         }
 
         comb
@@ -57,7 +57,7 @@ impl Elf {
             let can_move = match dir {
                 'N' => c[0] == 0 && c[1] == 0 && c[2] == 0,
                 'S' => c[5] == 0 && c[6] == 0 && c[7] == 0,
-                'W' => c[1] == 0 && c[3] == 0 && c[5] == 0,
+                'W' => c[0] == 0 && c[3] == 0 && c[5] == 0,
                 'E' => c[2] == 0 && c[4] == 0 && c[7] == 0,
                 _   => false
             };
@@ -69,6 +69,41 @@ impl Elf {
 
         'I'
     }
+}
+
+#[test]
+fn test_elf_in_dirs() {
+    let elf = Elf { id: 0, x: 0, y: 0 };
+    let elfs = vec![
+        Elf { id: 0, x: 0, y: 0 }
+    ];
+
+    assert_eq!(elf.no_elfs_in_dirs(&elfs), vec![0, 0, 0, 0, 0, 0, 0, 0]);
+
+    let elf = Elf { id: 0, x: 0, y: 0 };
+    let elfs = vec![
+        Elf { id: 0, x: 1, y: 0 }
+    ];
+
+    assert_eq!(elf.no_elfs_in_dirs(&elfs), vec![0, 0, 0,
+                                                0,    1,
+                                                0, 0, 0]);
+
+    let elf = Elf { id: 0, x: 0, y: 0 };
+    let elfs = vec![
+        Elf { id: 0, x: 1, y: 0 },
+        Elf { id: 0, x: -1, y: 0 },
+        Elf { id: 0, x: 1, y: -1 },
+        Elf { id: 0, x: -1, y: 1 },
+        Elf { id: 0, x: 0, y: 1 },
+        Elf { id: 0, x: 0, y: -1 },
+        Elf { id: 0, x: -1, y: -1 },
+        Elf { id: 0, x: 1, y: 1 }
+    ];
+
+    assert_eq!(elf.no_elfs_in_dirs(&elfs), vec![1, 1, 1,
+                                                1,    1,
+                                                1, 1, 1]);
 }
 
 fn main() {
@@ -145,7 +180,7 @@ fn empty_ground_tiles(elfs: &Vec<Elf>) -> usize {
     for y in min_y..=max_y {
         for x in min_x..=max_x {
             if elfs.iter().find(|e| e.x == x && e.y == y).is_none() {
-                count += 1
+                count += 1;
             }
         }
     }
@@ -154,8 +189,9 @@ fn empty_ground_tiles(elfs: &Vec<Elf>) -> usize {
 
 #[test]
 fn test_part1() {
-    assert_eq!(part1("test_input"), 110);
-    assert_eq!(part1("test_input2"), 25);
+    //assert_eq!(part1("test_input"), 110);
+    //assert_eq!(part1("test_input2"), 25);
+    assert_eq!(part1("test_input3"), 812);
 }
 
 fn part2(file: &'static str) -> isize {
