@@ -52,7 +52,7 @@ impl Elf {
         }
     }
 
-    fn proposed_direction(&mut self, c: &Vec<u8>, directions: &VecDeque<char>) -> char {
+    fn proposed_direction(&self, c: &Vec<u8>, directions: &VecDeque<char>) -> char {
         for dir in directions {
             let can_move = match dir {
                 'N' => c[0] == 0 && c[1] == 0 && c[2] == 0,
@@ -121,24 +121,17 @@ fn part1(file: &'static str) -> usize {
 
     loop {
         let mut move_set: HashMap<(isize, isize), Vec<usize>> = HashMap::new();
-        let mut combs: HashMap<usize, Vec<u8>> = HashMap::new();
+        let mut stop = true;
 
         for elf in &elfs {
-            combs.insert(elf.id, elf.no_elfs_in_dirs(&elfs));
-        }
+            let c = elf.no_elfs_in_dirs(&elfs);
 
-        if combs.values().all(|c| c == &empty) {
-            break;
-        }
-
-        for elf in &mut elfs {
-            let c = &combs[&elf.id];
-
-            if c == &empty {
+            if &c == &empty {
                 continue
             }
 
-            let direction = elf.proposed_direction(c, &considered_directions);
+            stop = false;
+            let direction = elf.proposed_direction(&c, &considered_directions);
             let (elf_dx, elf_dy) = elf.to_coords(&direction);
 
             move_set
@@ -162,7 +155,7 @@ fn part1(file: &'static str) -> usize {
 
         counter += 1;
 
-        if counter == 10 {
+        if counter == 10 || stop {
             break;
         }
     }
