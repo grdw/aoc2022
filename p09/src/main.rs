@@ -56,8 +56,8 @@ fn walk(directions: &Directions, knot_count: usize) -> usize {
                     spots.insert(*t);
                 }
             }
-
         };
+
     }
 
     spots.len()
@@ -65,15 +65,15 @@ fn walk(directions: &Directions, knot_count: usize) -> usize {
 
 fn get_dirs(x_diff: isize, y_diff: isize) -> Vec<Dir> {
     match (x_diff, y_diff) {
-        (2, 0)              => vec![Dir::RIGHT],
-        (-2, 0)             => vec![Dir::LEFT],
-        (0, 2)              => vec![Dir::UP],
-        (0, -2)             => vec![Dir::DOWN],
-        (1, 2) | (2, 1)     => vec![Dir::UP, Dir::RIGHT],
-        (1, -2) | (2, -1)   => vec![Dir::DOWN, Dir::RIGHT],
-        (-1, 2) | (-2, 1)   => vec![Dir::UP, Dir::LEFT],
-        (-1, -2) | (-2, -1) => vec![Dir::DOWN, Dir::LEFT],
-        _                   => vec![]
+        (2, 0)                         => vec![Dir::RIGHT],
+        (-2, 0)                        => vec![Dir::LEFT],
+        (0, 2)                         => vec![Dir::UP],
+        (0, -2)                        => vec![Dir::DOWN],
+        (1, 2) | (2, 1) | (2, 2)       => vec![Dir::UP, Dir::RIGHT],
+        (1, -2) | (2, -1) | (2, -2)    => vec![Dir::DOWN, Dir::RIGHT],
+        (-1, 2) | (-2, 1) | (-2, 2)    => vec![Dir::UP, Dir::LEFT],
+        (-1, -2) | (-2, -1) | (-2, -2) => vec![Dir::DOWN, Dir::LEFT],
+        _                              => vec![]
     }
 }
 
@@ -90,9 +90,6 @@ fn test_walk() {
 
     let directions = vec![('D', 2), ('L', 1)];
     assert_eq!(walk(&directions, 2), 2);
-
-    let directions = parse("test_input2");
-    assert_eq!(walk(&directions, 10), 36);
 }
 
 fn debug_grid(hx: isize, hy: isize, tx: isize, ty: isize) {
@@ -121,14 +118,15 @@ fn test_part1() {
     assert_eq!(part1("test_input"), 13);
 }
 
-fn part2(input: &'static str) -> u64 {
+fn part2(input: &'static str) -> usize {
     let directions = parse(input);
-    0
+    walk(&directions, 10)
 }
 
 #[test]
 fn test_part2() {
     assert_eq!(part2("test_input"), 1);
+    assert_eq!(part2("test_input2"), 36);
 }
 
 fn parse(input: &'static str) -> Directions {
