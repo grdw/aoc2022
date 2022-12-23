@@ -4,7 +4,14 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 
 type RNode = Rc<RefCell<Node>>;
-type Instructions = HashMap<String, Instruction>;
+type Instructions = HashMap<String, Vec<TreeBuildInstruction>>;
+
+#[derive(Debug)]
+enum TreeBuildInstruction {
+    AddNumber(u64),
+    AddOp(char),
+    AddChild(String),
+}
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 enum Instruction {
@@ -85,14 +92,33 @@ fn main() {
     println!("Part 2: {}", part2("input"));
 }
 
-fn part1(file: &'static str) -> usize {
+fn part1(file: &'static str) -> u64 {
     let contents = parse(file);
-    println!("{:?}", contents);
-    //let node = Node::rc_root();
-    //parse(node.clone());
-    //let result = recurse_collapse(node.clone());
-    //println!("Part 2: {:?}", result);
-    0
+    let node = Node::rc_root();
+
+    build_tree(node.clone(), &contents, "root".to_string());
+    recurse_collapse(node.clone())
+}
+
+fn build_tree(node: RNode, contents: &Instructions, node_name: String) {
+    let list = &contents[&node_name];
+
+    match &list[0] {
+        TreeBuildInstruction::AddOp(op) => {
+            let p = node.borrow_mut().add_child(Instruction::Op(*op));
+
+            for item in &list[1..] {
+                if let TreeBuildInstruction::AddChild(name) = item {
+                    build_tree(p.clone(), contents, name.to_string());
+                }
+            }
+        },
+
+        TreeBuildInstruction::AddNumber(n) => {
+            node.borrow_mut().add_child(Instruction::Number(*n));
+        },
+        _ => ()
+    }
 }
 
 #[test]
@@ -194,21 +220,30 @@ fn test_unwind_multiply() {
 
 fn parse(file: &'static str) -> Instructions {
     let contents = fs::read_to_string(file).unwrap();
-    let mut map = HashMap::new();
+    let mut inst_map = HashMap::new();
 
     for line in contents.split_terminator("\n") {
         let (name, instruction) = line.split_once(": ").unwrap();
 
         let parse = instruction.parse::<u64>();
-        let inst = match parse {
-            Ok(n) => Instruction::Number(n),
-            _ => {
-                Instruction::Op('+')
-            }
+
+        let n = if parse.is_err() {
+            let left = &instruction[0..4];
+            let right = &instruction[7..11];
+            let calc = instruction.chars().nth(5).unwrap();
+            vec![
+                TreeBuildInstruction::AddOp(calc),
+                TreeBuildInstruction::AddChild(left.to_string()),
+                TreeBuildInstruction::AddChild(right.to_string())
+            ]
+        } else {
+            vec![
+                TreeBuildInstruction::AddNumber(parse.unwrap())
+            ]
         };
 
-        map.insert(name.to_string(), inst);
+        inst_map.insert(name.to_string(), n);
     }
 
-    map
+    inst_map
 }
