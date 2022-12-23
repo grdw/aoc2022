@@ -40,20 +40,7 @@ fn walk(directions: &Directions) -> usize {
             };
 
 
-            let x_diff = hx - tx;
-            let y_diff = hy - ty;
-
-            let dirs = match (x_diff, y_diff) {
-                (2, 0)              => vec![Dir::RIGHT],
-                (-2, 0)             => vec![Dir::LEFT],
-                (0, 2)              => vec![Dir::UP],
-                (0, -2)             => vec![Dir::DOWN],
-                (1, 2) | (2, 1)     => vec![Dir::UP, Dir::RIGHT],
-                (1, -2) | (2, -1)   => vec![Dir::DOWN, Dir::RIGHT],
-                (-1, 2) | (-2, 1)   => vec![Dir::UP, Dir::LEFT],
-                (-1, -2) | (-2, -1) => vec![Dir::DOWN, Dir::LEFT],
-                _                   => vec![]
-            };
+            let dirs = get_dirs(hx - tx, hy - ty);
 
             for d in &dirs {
                 match d {
@@ -69,6 +56,20 @@ fn walk(directions: &Directions) -> usize {
     }
 
     spots.len()
+}
+
+fn get_dirs(x_diff: isize, y_diff: isize) -> Vec<Dir> {
+    match (x_diff, y_diff) {
+        (2, 0)              => vec![Dir::RIGHT],
+        (-2, 0)             => vec![Dir::LEFT],
+        (0, 2)              => vec![Dir::UP],
+        (0, -2)             => vec![Dir::DOWN],
+        (1, 2) | (2, 1)     => vec![Dir::UP, Dir::RIGHT],
+        (1, -2) | (2, -1)   => vec![Dir::DOWN, Dir::RIGHT],
+        (-1, 2) | (-2, 1)   => vec![Dir::UP, Dir::LEFT],
+        (-1, -2) | (-2, -1) => vec![Dir::DOWN, Dir::LEFT],
+        _                   => vec![]
+    }
 }
 
 #[test]
