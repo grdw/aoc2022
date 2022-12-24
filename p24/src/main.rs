@@ -10,8 +10,31 @@ struct Point {
     p_type: char
 }
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+struct State {
+    cost: usize,
+    position: usize,
+}
+
+impl Ord for State {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // Notice that the we flip the ordering on costs.
+        // In case of a tie we compare positions - this step is necessary
+        // to make implementations of `PartialEq` and `Ord` consistent.
+        other.cost.cmp(&self.cost)
+            .then_with(|| self.position.cmp(&other.position))
+    }
+}
+
+// `PartialOrd` needs to be implemented as well.
+impl PartialOrd for State {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 #[derive(Debug, Clone)]
-struct Edge(usize);
+struct Edge(usize, usize);
 type Edges = Vec<Vec<Edge>>;
 type Grid = Vec<Vec<Point>>;
 
@@ -136,34 +159,31 @@ fn get_edges(grid: &Grid) -> Edges{
         for x in 0..width {
             let current = row.iter().find(|p| p.x == x as isize);
 
-            match current {
-                Some(p) => {
-                    if p.p_type == '#' {
-                        continue
-                    }
+            if let Some(p) = current {
+                if p.p_type == '#' {
+                    continue
+                }
+            }
 
-                    for (dy, dx) in &directions {
-                        let ty = (y as isize + dy) as usize;
-                        let tx = (x as isize + dx) as usize;
+            let id = (y * width) + x;
+            for (dy, dx) in &directions {
+                let ty = (y as isize + dy) as usize;
+                let tx = (x as isize + dx) as usize;
 
-                        let row = &grid[ty];
-                        let brother = row
-                            .iter()
-                            .find(|p| p.x == tx as isize);
+                if let Some(row) = grid.get(ty) {
+                    let brother = row
+                        .iter()
+                        .find(|p| p.x == tx as isize);
 
-                        match brother {
-                            Some(b) => {
-                                if b.p_type == '#' {
-                                    continue
-                                }
-
-                                edges[p.id].push(Edge(b.id));
-                            },
-                            None => continue
+                    if let Some(b) = brother {
+                        if b.p_type == '#' {
+                            continue
                         }
                     }
-                },
-                None => continue
+
+                    let b_id = (ty * width) + tx;
+                    edges[id].push(Edge(b_id, 1));
+                }
             }
         }
     }
@@ -174,10 +194,10 @@ fn get_edges(grid: &Grid) -> Edges{
 fn dijkstra(basin: &Grid, start: &Point, end: &Point) -> Option<usize> {
     let mut edges: Edges = get_edges(basin);
     let mut dist: Vec<_> = (0..edges.len()).map(|_| usize::MAX).collect();
-    //let mut heap = BinaryHeap::new();
+    let mut heap = BinaryHeap::new();
 
-    //dist[start.id] = 0;
-    //heap.push(State { cost: 0, position: start.id });
+    dist[start.id] = 0;
+    heap.push(State { cost: 0, position: start.id });
 
     //while let Some(State { cost, position }) = heap.pop() {
     //    if position == goal { return Some(cost); }
@@ -195,29 +215,6 @@ fn dijkstra(basin: &Grid, start: &Point, end: &Point) -> Option<usize> {
     //}
 
     None
-}
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-struct State {
-    cost: usize,
-    position: usize,
-}
-
-impl Ord for State {
-    fn cmp(&self, other: &Self) -> Ordering {
-        // Notice that the we flip the ordering on costs.
-        // In case of a tie we compare positions - this step is necessary
-        // to make implementations of `PartialEq` and `Ord` consistent.
-        other.cost.cmp(&self.cost)
-            .then_with(|| self.position.cmp(&other.position))
-    }
-}
-
-// `PartialOrd` needs to be implemented as well.
-impl PartialOrd for State {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
 }
 
 #[test]
@@ -243,16 +240,16 @@ fn parse(file: &'static str) -> Grid {
     for (y, line) in content.split_terminator("\n").enumerate() {
         let mut row = vec![];
         for (x, c) in line.chars().enumerate() {
-            if c == '.' { continue }
-
-            row.push(
-                Point {
-                    id: id,
-                    x: x as isize,
-                    y: y as isize,
-                    p_type: c
-                }
-            );
+            if c != '.' {
+                row.push(
+                    Point {
+                        id: id,
+                        x: x as isize,
+                        y: y as isize,
+                        p_type: c
+                    }
+                );
+            }
 
             id += 1
         }
