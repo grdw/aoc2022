@@ -151,19 +151,29 @@ fn part2(file: &'static str) -> i64 {
 
     let op_node = &node.borrow().children[0].clone();
 
-    for c in &op_node.borrow().children {
-        println!("{:?}", c.borrow().read());
-    }
-
     loop {
-        let value = recurse_collapse(node.clone());
-        if value == 0 {
+        let mut b = vec![];
+        for c in &op_node.borrow().children {
+            let value = recurse_collapse(c.clone());
+            b.push(value);
+        }
+
+        if b[0] == b[1] {
             break;
         }
 
+        println!("{:?}", b);
+        let guess = if b[0] > b[1] {
+            b[1] - b[0]
+        } else if b[1] < b[0] {
+            b[0] - b[1]
+        } else {
+            b[1] - b[0]
+        };
 
         // For the example
-        increase_node_value_at(node.clone(), String::from("humn"));
+        let me = find_node(node.clone(), "humn").unwrap();
+        set_node_value(me, guess);
     }
 
     let search = find_node(node.clone(), "humn");
@@ -194,33 +204,27 @@ fn find_node(rc_node: RNode, name: &'static str) -> Option<RNode> {
     return None
 }
 
-fn increase_node_value_at(rc_node: RNode, name: String) {
+fn set_node_value(rc_node: RNode, value: i64) {
     let mut node = rc_node.borrow_mut();
 
-    if node.name == name {
-        if let Instruction::Number(n) = node.instruction {
-            node.instruction = Instruction::Number(n + 1);
-        }
-        return
-    } else {
-        for i in 0..node.children.len() {
-            increase_node_value_at(node.children[i].clone(), name.to_string())
-        }
+    if let Instruction::Number(n) = node.instruction {
+        node.instruction = Instruction::Number(value);
     }
 }
 
-fn decrease_node_value_at(rc_node: RNode, name: String) {
+fn increase_node_value(rc_node: RNode) {
     let mut node = rc_node.borrow_mut();
 
-    if node.name == name {
-        if let Instruction::Number(n) = node.instruction {
-            node.instruction = Instruction::Number(n + 1);
-        }
-        return
-    } else {
-        for i in 0..node.children.len() {
-            increase_node_value_at(node.children[i].clone(), name.to_string())
-        }
+    if let Instruction::Number(n) = node.instruction {
+        node.instruction = Instruction::Number(n + 1);
+    }
+}
+
+fn decrease_node_value(rc_node: RNode) {
+    let mut node = rc_node.borrow_mut();
+
+    if let Instruction::Number(n) = node.instruction {
+        node.instruction = Instruction::Number(n - 1);
     }
 }
 
@@ -286,7 +290,7 @@ fn test_unwind_equals() {
     collapse(root, new_node.clone());
     let number = new_node.borrow().read_value();
 
-    assert_eq!(number, Some(1));
+    assert_eq!(number, Some(0));
 }
 
 #[test]
