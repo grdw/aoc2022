@@ -1,0 +1,17 @@
+
+running 2 tests
+0 -1
+-1 0
+0 -1
+-1 0
+test test_part2 ... FAILED
+test test_part1 ... FAILED
+
+failures:
+
+failures:
+    test_part1
+    test_part2
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

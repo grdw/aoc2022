@@ -1,6 +1,6 @@
 use std::fs;
-use std::cmp::Ordering;
-use std::collections::BinaryHeap;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 #[derive(Debug)]
 struct Point {
@@ -10,33 +10,54 @@ struct Point {
     p_type: char
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-struct State {
-    cost: usize,
-    position: usize,
+#[derive(Debug)]
+struct Node {
+    x: isize,
+    y: isize,
+    action: char,
+    children: Vec<RNode>
 }
 
-impl Ord for State {
-    fn cmp(&self, other: &Self) -> Ordering {
-        // Notice that the we flip the ordering on costs.
-        // In case of a tie we compare positions - this step is necessary
-        // to make implementations of `PartialEq` and `Ord` consistent.
-        other.cost.cmp(&self.cost)
-            .then_with(|| self.position.cmp(&other.position))
+impl Node {
+    fn rc_root() -> RNode {
+        Rc::new(
+            RefCell::new(
+                Node::node(1, 0, 'I')
+            )
+        )
+    }
+
+    fn add_child(&mut self, x: isize, y: isize, action: char) -> RNode {
+        let rc = Rc::new(
+            RefCell::new(
+                Node::node(x, y, action)
+            )
+        );
+
+        self.children.push(rc.clone());
+        rc
+    }
+
+    fn node(x: isize, y: isize, action: char) -> Node {
+        Node {
+            x: x,
+            y: y,
+            action: action,
+            children: vec![]
+        }
+    }
+
+    fn all_leafs(&self) -> bool {
+        self.children.iter().all(|n| n.borrow().is_leaf())
+    }
+
+    fn is_leaf(&self) -> bool {
+        self.children.is_empty()
     }
 }
 
-// `PartialOrd` needs to be implemented as well.
-impl PartialOrd for State {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-#[derive(Debug, Clone)]
-struct Edge(usize, usize);
-type Edges = Vec<Vec<Edge>>;
-type Grid = Vec<Vec<Point>>;
+type Grid = Vec<Point>;
+type RNode = Rc<RefCell<Node>>;
 
 fn main() {
     println!("P1: {}", part1("input"));
@@ -50,178 +71,137 @@ fn part1(file: &'static str) -> usize {
     let width = end_x;
     let height = end_y;
 
-    //let mut start = Point {
-    //    id: 0,
-    //    x: start_x + 1,
-    //    y: start_y,
-    //    p_type: 'S'
-    //};
+    let mut start = Point {
+        id: 0,
+        x: start_x + 1,
+        y: start_y,
+        p_type: 'S'
+    };
 
-    //let end = Point {
-    //    id: ((end_x * end_y) + 1) as usize,
-    //    x: end_x - 1,
-    //    y: end_y,
-    //    p_type: 'E'
-    //};
+    let end = Point {
+        id: ((end_x * end_y) + 1) as usize,
+        x: end_x - 1,
+        y: end_y,
+        p_type: 'E'
+    };
 
-    //let edges = get_edges(&basin, width, height);
-    //debug_blizzards(&basin, &start);
-    loop {
-        minutes += 1;
-        move_blizzards(&mut basin, height, width);
-        let val = dijkstra(&basin, 1, ((end_x * end_y) - 1) as usize);
-        println!("{:?}", val);
-        //move_me(&mut start, &basin);
+    let mut node = Node::rc_root();
+    let mut nodes = vec![vec![node.clone()]];
 
-        //println!("{}", minutes);
-        //debug_blizzards(&basin, &start);
-
-        if minutes == 14 {
-            break;
-        }
-
-        //if start.x == end_x && start.y == end_y {
-        //    break;
-        //}
-    }
+    debug_blizzards(&basin);
+    move_me(&mut nodes, &mut basin, &end);
+    debug_blizzards(&basin);
 
     minutes
 }
 
 fn maxes(grid: &Grid) -> (isize, isize, isize, isize) {
     let mi_x = 0;
-    let mx_x = grid[0].len() as isize;
+    let mx_x = grid.iter().map(|p| p.x).max().unwrap();
     let mi_y = 0;
-    let mx_y = grid.len() as isize;
+    let mx_y = grid.iter().map(|p| p.y).max().unwrap();
 
     (mi_x, mx_x, mi_y, mx_y)
 }
 
-fn move_blizzards(grid: &mut Grid, height: isize, width: isize) {
-    for row in grid {
-        for p in row {
-            match p.p_type {
-                'v' => p.y += 1,
-                '>' => p.x += 1,
-                '^' => p.y -= 1,
-                '<' => p.x -= 1,
-                _   => continue
+fn move_me(nodes: &mut Vec<Vec<RNode>>, grid: &mut Grid, end: &Point) {
+    while let Some(l_nodes) = nodes.pop() {
+        move_blizzards(grid);
+
+        for node in &l_nodes {
+            let mut new_nodes = vec![];
+            let mut n = node.borrow_mut();
+            let (mut x, mut y) = (n.x, n.y);
+            let mut idle = true;
+            let max_y = grid.iter().map(|p| p.y).max().unwrap();
+
+            let possible_positions = vec![
+                (0, 1,  'v'), // D
+                (0, -1, '^'), // U
+                (-1, 0, '<'), // L
+                (1, 0,  '>')  // R
+            ];
+
+            for (tx, ty, action) in possible_positions {
+                let px = x + tx;
+                let py = y + ty;
+
+                if let Some(fp) = grid.iter().find(|p| p.x == px && p.y == py) {
+                    continue
+                }
+
+                if py < 0 || py > max_y {
+                    continue;
+                }
+
+                if py < y || px < x {
+                    continue
+                }
+
+                idle = false;
+                let child = n.add_child(px, py, action);
+                new_nodes.push(child.clone());
             }
 
-            if p.x == 0 {
-                p.x = width - 1
-            } else if p.x == width {
-                p.x = 1
+            if idle && x != end.x && y != end.y {
+                let child = n.add_child(x, y, 'I');
+                new_nodes.push(child.clone());
             }
 
-            if p.y == 0 {
-                p.y = height - 1
-            } else if p.y == height {
-                p.y = 1
-            }
+            nodes.push(new_nodes);
         }
     }
 }
 
-fn debug_blizzards(grid: &Grid, me: &Point) {
+fn move_blizzards(grid: &mut Grid) {
+    let (start_x, end_x, start_y, end_y) = maxes(&grid);
+    let width = end_x;
+    let height = end_y;
+
+    for p in grid {
+        match p.p_type {
+            'v' => p.y += 1,
+            '>' => p.x += 1,
+            '^' => p.y -= 1,
+            '<' => p.x -= 1,
+            _   => continue
+        }
+
+        if p.x == 0 {
+            p.x = width - 1
+        } else if p.x == width {
+            p.x = 1
+        }
+
+        if p.y == 0 {
+            p.y = height - 1
+        } else if p.y == height {
+            p.y = 1
+        }
+    }
+}
+
+fn debug_blizzards(grid: &Grid) {
     let (min_x, max_x, min_y, max_y) = maxes(grid);
 
     for y in min_y..=max_y {
-        let row = &grid[y as usize];
         let mut s = String::new();
         for x in min_x..=max_x {
-            let f = row.iter().find(|p| p.x == x && p.y == y);
+            let f = grid.iter().find(|p| p.x == x && p.y == y);
 
             match f {
                 Some(p) => s.push(p.p_type),
-                None => {
-                    if me.x == x && me.y == y {
-                        s.push('X');
-                    } else {
-                        s.push('.');
-                    }
-                }
+                None => s.push('.')
             }
         }
         println!("{}", s);
     }
 }
 
-fn get_edges(grid: &Grid) -> Edges{
-    let width = grid[0].len();
-    let height = grid.len();
-    let directions: Vec<(isize, isize)> = vec![
-        (-1, 0), (0, -1), (1, 0), (0, 1)
-    ];
-    let mut edges: Edges = vec![vec![]; height * width];
-
-    for y in 0..height {
-        let row = &grid[y];
-        for x in 0..width {
-            let current = row.iter().find(|p| p.x == x as isize);
-
-            if let Some(p) = current {
-                if p.p_type == '#' {
-                    continue
-                }
-            }
-
-            let id = (y * width) + x;
-            for (dy, dx) in &directions {
-                let ty = (y as isize + dy) as usize;
-                let tx = (x as isize + dx) as usize;
-
-                if let Some(row) = grid.get(ty) {
-                    let brother = row
-                        .iter()
-                        .find(|p| p.x == tx as isize);
-
-                    if let Some(b) = brother {
-                        if b.p_type == '#' {
-                            continue
-                        }
-                    }
-
-                    let b_id = (ty * width) + tx;
-                    edges[id].push(Edge(b_id, 1));
-                }
-            }
-        }
-    }
-
-    edges
-}
-
-fn dijkstra(basin: &Grid, start: usize, end: usize) -> Option<usize> {
-    let mut edges: Edges = get_edges(basin);
-    let mut dist: Vec<_> = (0..edges.len()).map(|_| usize::MAX).collect();
-    let mut heap = BinaryHeap::new();
-
-    dist[start] = 0;
-    heap.push(State { cost: 0, position: start });
-
-    while let Some(State { cost, position }) = heap.pop() {
-        if position == end { return Some(cost); }
-        if cost > dist[position] { continue; }
-
-        for edge in &edges[position] {
-            let next = State { cost: cost + 1, position: edge.0 };
-
-            if next.cost < dist[next.position] {
-                heap.push(next);
-
-                dist[next.position] = next.cost;
-            }
-        }
-    }
-
-    None
-}
-
 #[test]
 fn test_part1() {
-    //assert_eq!(part1("test_input"), 1);
-    assert_eq!(part1("test_input2"), 1);
+    assert_eq!(part1("test_input"), 1);
+    assert_eq!(part1("test_input2"), 18);
 }
 
 fn part2(file: &'static str) -> isize {
@@ -239,10 +219,9 @@ fn parse(file: &'static str) -> Grid {
     let mut id = 1;
 
     for (y, line) in content.split_terminator("\n").enumerate() {
-        let mut row = vec![];
         for (x, c) in line.chars().enumerate() {
             if c != '.' {
-                row.push(
+                grid.push(
                     Point {
                         id: id,
                         x: x as isize,
@@ -254,8 +233,6 @@ fn parse(file: &'static str) -> Grid {
 
             id += 1
         }
-
-        grid.push(row);
     }
 
     grid
