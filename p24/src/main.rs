@@ -3,8 +3,8 @@ use std::fs;
 const MAX_ROWS: usize = 32;
 
 fn main() {
-	println!("Part One: {}", part1("input"));
-	println!("Part Two: {}", part2("input"));
+	println!("P1: {}", part1("input"));
+	println!("P2: {}", part2("input"));
 }
 
 fn part1(input: &str) -> i32 {
