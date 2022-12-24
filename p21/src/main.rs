@@ -64,7 +64,7 @@ impl Node {
                 if nums[0] == nums[1] {
                     0
                 } else {
-                    println!("{:?}", nums);
+                    //println!("{:?}", nums);
                     1
                 }
             },
@@ -87,6 +87,13 @@ impl Node {
 
     fn is_leaf(&self) -> bool {
         self.children.is_empty()
+    }
+
+    fn read(&self) -> Option<i64> {
+        match self.instruction {
+            Instruction::Number(n) => Some(n),
+            _ => None
+        }
     }
 
     fn read_value(&self) -> Option<i64> {
@@ -141,34 +148,50 @@ fn part2(file: &'static str) -> i64 {
     let node = Node::rc_root();
 
     build_tree(node.clone(), &contents, "root".to_string());
+
+    let op_node = &node.borrow().children[0].clone();
+
+    for c in &op_node.borrow().children {
+        println!("{:?}", c.borrow().read());
+    }
+
     loop {
         let value = recurse_collapse(node.clone());
-        println!("{:?}", value);
         if value == 0 {
             break;
         }
+
 
         // For the example
         increase_node_value_at(node.clone(), String::from("humn"));
     }
 
-    let mut answer = 0;
-    get_node_value_at(node.clone(), String::from("humn"), &mut answer);
-    answer
+    let search = find_node(node.clone(), "humn");
+    search
+        .unwrap()
+        .borrow()
+        .read()
+        .unwrap()
 }
 
-fn get_node_value_at(rc_node: RNode, name: String, value: &mut i64) {
+fn find_node(rc_node: RNode, name: &'static str) -> Option<RNode> {
     let node = rc_node.borrow_mut();
+    let name_string = name.to_string();
 
-    if node.name == name {
-        if let Instruction::Number(n) = node.instruction {
-            *value = n;
-        }
+    if node.name == name_string {
+        return Some(rc_node.clone());
     }
 
     for i in 0..node.children.len() {
-        get_node_value_at(node.children[i].clone(), name.to_string(), value);
+        let child = node.children[i].clone();
+
+        let val = find_node(child, name);
+        if val.is_some() {
+            return val;
+        }
     }
+
+    return None
 }
 
 fn increase_node_value_at(rc_node: RNode, name: String) {
