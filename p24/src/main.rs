@@ -1,6 +1,8 @@
 use std::fs;
-use std::rc::Rc;
+use std::cmp;
+use std::rc::{Rc, Weak};
 use std::cell::RefCell;
+use std::collections::HashSet;
 
 #[derive(Debug)]
 struct Point {
@@ -15,6 +17,7 @@ struct Node {
     y: isize,
     minute: usize,
     action: char,
+    parent: Option<Weak<RefCell<Node>>>,
     children: Vec<RNode>
 }
 
@@ -22,15 +25,22 @@ impl Node {
     fn rc_root() -> RNode {
         Rc::new(
             RefCell::new(
-                Node::node(1, 0, 'I', 0)
+                Node::root(1, 0, 'I', 0)
             )
         )
     }
 
-    fn add_child(&mut self, x: isize, y: isize, action: char, minute: usize) -> RNode {
+    fn add_child(
+        &mut self,
+        x: isize,
+        y: isize,
+        action: char,
+        minute: usize,
+        parent: Weak<RefCell<Node>>) -> RNode {
+
         let rc = Rc::new(
             RefCell::new(
-                Node::node(x, y, action, minute)
+                Node::node(x, y, action, minute, parent)
             )
         );
 
@@ -38,19 +48,85 @@ impl Node {
         rc
     }
 
-    fn node(x: isize, y: isize, action: char, minute: usize) -> Node {
+    fn node(
+        x: isize,
+        y: isize,
+        action: char,
+        minute: usize,
+        parent: Weak<RefCell<Node>>) -> Node {
         Node {
             x: x,
             y: y,
+            parent: Some(parent),
             minute: minute,
             action: action,
             children: vec![]
         }
     }
 
+    fn root(
+        x: isize,
+        y: isize,
+        action: char,
+        minute: usize) -> Node {
+        Node {
+            x: x,
+            y: y,
+            parent: None,
+            minute: minute,
+            action: action,
+            children: vec![]
+        }
+    }
+
+    fn repeat_count(
+        &self,
+        set: &mut HashSet<(isize, isize, char)>,
+        count: &mut usize) {
+
+        if !set.insert((self.x, self.y, self.action)) {
+            *count += 1
+        }
+
+        if let Some(rc) = &self.parent {
+            let parent = rc.upgrade().unwrap();
+            let p_parent = parent.borrow();
+            p_parent.repeat_count(set, count);
+        }
+    }
+
     fn is_leaf(&self) -> bool {
         self.children.is_empty()
     }
+}
+
+#[test]
+fn test_repeat_count() {
+    let node = Node::rc_root();
+    let first_step = node
+        .borrow_mut()
+        .add_child(1, 1, '<', 1, Rc::downgrade(&node));
+
+    let child = first_step
+        .borrow_mut()
+        .add_child(2, 1, '>', 1, Rc::downgrade(&first_step));
+
+    let child2 = child
+        .borrow_mut()
+        .add_child(1, 1, '<', 1, Rc::downgrade(&child));
+
+    let child3 = child2
+        .borrow_mut()
+        .add_child(2, 1, '>', 1, Rc::downgrade(&child2));
+
+    let child4 = child3
+        .borrow_mut()
+        .add_child(1, 1, '<', 1, Rc::downgrade(&child3));
+
+    let mut count = 0;
+    let mut set = HashSet::new();
+    child4.borrow().repeat_count(&mut set, &mut count);
+    assert_eq!(count, 3);
 }
 
 type Grid = Vec<Point>;
@@ -74,11 +150,10 @@ fn part1(file: &'static str) -> usize {
     let node = Node::rc_root();
     let mut nodes = vec![vec![node.clone()]];
 
-    println!("MOVING");
     move_me(&mut nodes, &mut basin, &end);
     let mut depths = vec![];
-    println!("DEPTH FINDING");
     find_depth(node.clone(), &mut depths);
+    println!("{:?}", depths);
 
     depths.iter().min().unwrap() + 1
 }
@@ -133,22 +208,34 @@ fn move_me(nodes: &mut Vec<Vec<RNode>>, grid: &mut Grid, end: &Point) {
                     continue
                 }
 
-                if py < 0 || py > max_y {
+                if py < 1 || py > max_y {
                     continue;
                 }
 
-                if py < y || px < x {
+                // This limits my movement up and down
+                // by 1 step :(
+                //let mut set = HashSet::new();
+                //let mut count = 0;
+                //n.repeat_count(&mut set, &mut count);
+
+                if (py < y || px < x) {
                     continue
                 }
 
                 idle = false;
-                let child = n.add_child(px, py, action, minutes);
+                let child = n.add_child(
+                    px,
+                    py,
+                    action,
+                    minutes,
+                    Rc::downgrade(&node)
+                );
                 new_nodes.push(child.clone());
             }
 
             if idle && x != end.x && y != end.y {
-                let child = n.add_child(x, y, 'I', minutes);
-                new_nodes.push(child.clone());
+                n.minute = minutes;
+                new_nodes.push(node.clone());
             }
 
             nodes.push(new_nodes);
