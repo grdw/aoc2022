@@ -79,54 +79,9 @@ impl Node {
         }
     }
 
-    fn repeat_count(
-        &self,
-        set: &mut HashSet<(isize, isize, char)>,
-        count: &mut usize) {
-
-        if !set.insert((self.x, self.y, self.action)) {
-            *count += 1
-        }
-
-        if let Some(rc) = &self.parent {
-            let parent = rc.upgrade().unwrap();
-            let p_parent = parent.borrow();
-            p_parent.repeat_count(set, count);
-        }
-    }
-
     fn is_leaf(&self) -> bool {
         self.children.is_empty()
     }
-}
-
-#[test]
-fn test_repeat_count() {
-    let node = Node::rc_root();
-    let first_step = node
-        .borrow_mut()
-        .add_child(1, 1, '<', 1, Rc::downgrade(&node));
-
-    let child = first_step
-        .borrow_mut()
-        .add_child(2, 1, '>', 1, Rc::downgrade(&first_step));
-
-    let child2 = child
-        .borrow_mut()
-        .add_child(1, 1, '<', 1, Rc::downgrade(&child));
-
-    let child3 = child2
-        .borrow_mut()
-        .add_child(2, 1, '>', 1, Rc::downgrade(&child2));
-
-    let child4 = child3
-        .borrow_mut()
-        .add_child(1, 1, '<', 1, Rc::downgrade(&child3));
-
-    let mut count = 0;
-    let mut set = HashSet::new();
-    child4.borrow().repeat_count(&mut set, &mut count);
-    assert_eq!(count, 3);
 }
 
 type Grid = Vec<Point>;
@@ -181,6 +136,7 @@ fn maxes(grid: &Grid) -> (isize, isize, isize, isize) {
 
 fn move_me(nodes: &mut Vec<Vec<RNode>>, grid: &mut Grid, end: &Point) {
     let mut minutes = 0;
+    let mut set = HashSet::new();
 
     while let Some(l_nodes) = nodes.pop() {
         minutes += 1;
