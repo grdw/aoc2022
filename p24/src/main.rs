@@ -1,11 +1,9 @@
 use std::fs;
-use std::cmp;
 use std::rc::Rc;
 use std::cell::RefCell;
 
 #[derive(Debug)]
 struct Point {
-    id: usize,
     x: isize,
     y: isize,
     p_type: char
@@ -50,10 +48,6 @@ impl Node {
         }
     }
 
-    fn all_leafs(&self) -> bool {
-        self.children.iter().all(|n| n.borrow().is_leaf())
-    }
-
     fn is_leaf(&self) -> bool {
         self.children.is_empty()
     }
@@ -68,31 +62,22 @@ fn main() {
 }
 
 fn part1(file: &'static str) -> usize {
-    let mut minutes = 0;
     let mut basin = parse(file);
     let (start_x, end_x, start_y, end_y) = maxes(&basin);
-    let width = end_x;
-    let height = end_y;
-
-    let mut start = Point {
-        id: 0,
-        x: start_x + 1,
-        y: start_y,
-        p_type: 'S'
-    };
 
     let end = Point {
-        id: ((end_x * end_y) + 1) as usize,
         x: end_x - 1,
         y: end_y,
         p_type: 'E'
     };
 
-    let mut node = Node::rc_root();
+    let node = Node::rc_root();
     let mut nodes = vec![vec![node.clone()]];
 
+    println!("MOVING");
     move_me(&mut nodes, &mut basin, &end);
     let mut depths = vec![];
+    println!("DEPTH FINDING");
     find_depth(node.clone(), &mut depths);
 
     depths.iter().min().unwrap() + 1
@@ -129,7 +114,7 @@ fn move_me(nodes: &mut Vec<Vec<RNode>>, grid: &mut Grid, end: &Point) {
         for node in &l_nodes {
             let mut new_nodes = vec![];
             let mut n = node.borrow_mut();
-            let (mut x, mut y) = (n.x, n.y);
+            let (x, y) = (n.x, n.y);
             let mut idle = true;
             let max_y = grid.iter().map(|p| p.y).max().unwrap();
 
@@ -144,7 +129,7 @@ fn move_me(nodes: &mut Vec<Vec<RNode>>, grid: &mut Grid, end: &Point) {
                 let px = x + tx;
                 let py = y + ty;
 
-                if let Some(fp) = grid.iter().find(|p| p.x == px && p.y == py) {
+                if let Some(_) = grid.iter().find(|p| p.x == px && p.y == py) {
                     continue
                 }
 
@@ -172,7 +157,7 @@ fn move_me(nodes: &mut Vec<Vec<RNode>>, grid: &mut Grid, end: &Point) {
 }
 
 fn move_blizzards(grid: &mut Grid) {
-    let (start_x, end_x, start_y, end_y) = maxes(&grid);
+    let (__x, end_x, _y, end_y) = maxes(&grid);
     let width = end_x;
     let height = end_y;
 
@@ -234,22 +219,18 @@ fn test_part2() {
 fn parse(file: &'static str) -> Grid {
     let mut grid = vec![];
     let content = fs::read_to_string(file).unwrap();
-    let mut id = 1;
 
     for (y, line) in content.split_terminator("\n").enumerate() {
         for (x, c) in line.chars().enumerate() {
             if c != '.' {
                 grid.push(
                     Point {
-                        id: id,
                         x: x as isize,
                         y: y as isize,
                         p_type: c
                     }
                 );
             }
-
-            id += 1
         }
     }
 
