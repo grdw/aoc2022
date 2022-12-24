@@ -1,15 +1,13 @@
 use std::fs;
 
-type DodgyLinkedList = Vec<(i32, i32)>;
-
 fn main() {
     println!("P1: {}", part1("input"));
     println!("P2: {}", part2("input"));
 }
 
-fn part1(file: &'static str) -> i32 {
+fn part1(file: &'static str) -> i64 {
     let nums = parse_file(file);
-    decrypt(&nums)
+    decrypt(&nums, 1, 1)
 }
 
 #[test]
@@ -17,75 +15,56 @@ fn test_part1() {
     assert_eq!(part1("test_input"), 3);
 }
 
-fn decrypt(list: &Vec<i32>) -> i32 {
-    let l = list.len() as i32;
-    let mut move_list = list.clone();
+fn decrypt(
+    nums: &Vec<i64>,
+    decryption_key: i64,
+    iterations: usize) -> i64 {
 
-    for (i, n) in list.iter().enumerate() {
-        if n == &0 { continue };
+    let nums = nums
+        .iter()
+        .map(|x| x * decryption_key)
+        .collect::<Vec<_>>();
 
-        let ci = move_list.iter().position(|m| m == n).unwrap() as i32;
+    let mut ans = (0..nums.len()).collect::<Vec<_>>();
+    for _ in 0..iterations {
+        for (i, &x) in nums.iter().enumerate() {
+            let pos = ans.iter().position(|&y| y == i).unwrap();
+            ans.remove(pos);
 
-        let pos = if ci + n >= (l - 1) {
-            //println!("🍄 {}", n);
-            (ci + n) % l
-        } else if ci + n <= 0 {
-            //println!("🎂 {}", n);
-            (ci + n).rem_euclid(l)
-        } else {
-            //println!("🍇 {}", n);
-            ci + *n
-        };
-
-        //println!("{} {}", ci, pos);
-
-        //println!("{:?}", move_list);
-        move_list.remove(ci as usize);
-        move_list.insert(pos as usize, *n);
-        //println!("{:?}", move_list);
+            let new_i = (pos as i64 + x).rem_euclid(ans.len() as i64) as usize;
+            ans.insert(new_i, i);
+        }
     }
+    let orig_zero_i = nums.iter().position(|&i| i == 0).unwrap();
+    let zero_i = ans.iter().position(|&i| i == orig_zero_i).unwrap();
 
-    //println!("FINAL: {:?}", move_list);
-
-    let qi = move_list.iter().position(|m| m == &0).unwrap();
-    (1..=3)
-        .map(|n| {
-            let j = (n * 1000) + qi;
-            let i = j % (list.len() - 1);
-            println!("{:?}", move_list[i]);
-            move_list[i]
-        })
+    [1000, 2000, 3000]
+        .iter()
+        .map(|i| nums[ans[(zero_i + i) % ans.len()]])
         .sum()
 }
 
 #[test]
 fn test_example_decrypt() {
     let vector = vec![1, 2, -3, 3, -2, 0, 4];
-    assert_eq!(decrypt(&vector), 3);
+    assert_eq!(decrypt(&vector, 1, 1), 3);
 }
 
-#[test]
-fn test_extra_decrypt() {
-    let vector = vec![0, 1, 2, 3];
-    assert_eq!(decrypt(&vector), 4);
 
-    let vector = vec![0, 1, 2, -3];
-    assert_eq!(decrypt(&vector), -2);
-}
-
-fn part2(file: &'static str) -> i32 {
-    0
+fn part2(file: &'static str) -> i64 {
+    let nums = parse_file(file);
+    decrypt(&nums, 811589153, 10)
 }
 
 #[test]
 fn test_part2() {
-    assert_eq!(part2("test_input"), 1);
+    assert_eq!(part2("test_input"), 1623178306);
 }
 
-fn parse_file(file: &'static str) -> Vec<i32> {
+fn parse_file(file: &'static str) -> Vec<i64> {
     let contents = fs::read_to_string(file).unwrap();
     contents
         .split_terminator("\n")
-        .map(|i| i.parse::<i32>().unwrap())
+        .map(|i| i.parse::<i64>().unwrap())
         .collect()
 }
