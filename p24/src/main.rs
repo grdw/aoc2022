@@ -50,26 +50,27 @@ fn part1(file: &'static str) -> usize {
     let width = end_x;
     let height = end_y;
 
-    let mut start = Point {
-        id: 0,
-        x: start_x + 1,
-        y: start_y,
-        p_type: 'S'
-    };
+    //let mut start = Point {
+    //    id: 0,
+    //    x: start_x + 1,
+    //    y: start_y,
+    //    p_type: 'S'
+    //};
 
-    let end = Point {
-        id: ((end_x * end_y) + 1) as usize,
-        x: end_x - 1,
-        y: end_y,
-        p_type: 'E'
-    };
+    //let end = Point {
+    //    id: ((end_x * end_y) + 1) as usize,
+    //    x: end_x - 1,
+    //    y: end_y,
+    //    p_type: 'E'
+    //};
 
     //let edges = get_edges(&basin, width, height);
     //debug_blizzards(&basin, &start);
     loop {
         minutes += 1;
         move_blizzards(&mut basin, height, width);
-        dijkstra(&basin, &start, &end);
+        let val = dijkstra(&basin, 1, ((end_x * end_y) - 1) as usize);
+        println!("{:?}", val);
         //move_me(&mut start, &basin);
 
         //println!("{}", minutes);
@@ -191,28 +192,28 @@ fn get_edges(grid: &Grid) -> Edges{
     edges
 }
 
-fn dijkstra(basin: &Grid, start: &Point, end: &Point) -> Option<usize> {
+fn dijkstra(basin: &Grid, start: usize, end: usize) -> Option<usize> {
     let mut edges: Edges = get_edges(basin);
     let mut dist: Vec<_> = (0..edges.len()).map(|_| usize::MAX).collect();
     let mut heap = BinaryHeap::new();
 
-    dist[start.id] = 0;
-    heap.push(State { cost: 0, position: start.id });
+    dist[start] = 0;
+    heap.push(State { cost: 0, position: start });
 
-    //while let Some(State { cost, position }) = heap.pop() {
-    //    if position == goal { return Some(cost); }
-    //    if cost > dist[position] { continue; }
+    while let Some(State { cost, position }) = heap.pop() {
+        if position == end { return Some(cost); }
+        if cost > dist[position] { continue; }
 
-    //    for edge in &edges[position] {
-    //        let next = State { cost: cost + 1, position: edge.0 };
+        for edge in &edges[position] {
+            let next = State { cost: cost + 1, position: edge.0 };
 
-    //        if next.cost < dist[next.position] {
-    //            heap.push(next);
+            if next.cost < dist[next.position] {
+                heap.push(next);
 
-    //            dist[next.position] = next.cost;
-    //        }
-    //    }
-    //}
+                dist[next.position] = next.cost;
+            }
+        }
+    }
 
     None
 }
