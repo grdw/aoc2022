@@ -8,14 +8,14 @@ type Instructions = HashMap<String, Vec<TreeBuildInstruction>>;
 
 #[derive(Debug)]
 enum TreeBuildInstruction {
-    AddNumber(i64),
+    AddNumber(i128),
     AddOp(char),
     AddChild(String),
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 enum Instruction {
-    Number(i64),
+    Number(i128),
     Op(char)
 }
 
@@ -46,7 +46,7 @@ impl Node {
         rc
     }
 
-    fn operate(&self) -> i64 {
+    fn operate(&self) -> i128 {
         let mut nums = vec![];
         for child in &self.children {
             match child.borrow().instruction {
@@ -61,11 +61,17 @@ impl Node {
             Instruction::Op('/') => nums[0] / nums[1],
             Instruction::Op('-') => nums[0] - nums[1],
             Instruction::Op('=') => {
+                let (a, b) = (format!("{}", nums[0]), format!("{}", nums[1]));
                 if nums[0] == nums[1] {
                     0
-                } else {
-                    //println!("{:?}", nums);
+                } else if nums[0] > nums[1] {
+                    println!("TOO HIGH {:?} {} {}", nums, a.len(), b.len());
                     1
+                } else if nums[0] < nums[1] {
+                    println!("TOO LOW {:?} {} {}", nums, a.len(), b.len());
+                    2
+                } else {
+                    panic!("DEATH TO LOGIC")
                 }
             },
             Instruction::Number(val) => val,
@@ -89,14 +95,14 @@ impl Node {
         self.children.is_empty()
     }
 
-    fn read(&self) -> Option<i64> {
+    fn read(&self) -> Option<i128> {
         match self.instruction {
             Instruction::Number(n) => Some(n),
             _ => None
         }
     }
 
-    fn read_value(&self) -> Option<i64> {
+    fn read_value(&self) -> Option<i128> {
         match &self.children[0].as_ref().borrow().instruction {
             Instruction::Number(n) => Some(*n),
             _ => None
@@ -109,7 +115,7 @@ fn main() {
     println!("Part 2: {}", part2("input"));
 }
 
-fn part1(file: &'static str) -> i64 {
+fn part1(file: &'static str) -> i128 {
     let contents = parse(file, 1);
     let node = Node::rc_root();
 
@@ -143,37 +149,32 @@ fn test_part1() {
     assert_eq!(part1("test_input"), 152);
 }
 
-fn part2(file: &'static str) -> i64 {
+fn part2(file: &'static str) -> i128 {
     let contents = parse(file, 2);
     let node = Node::rc_root();
 
     build_tree(node.clone(), &contents, "root".to_string());
 
     let op_node = &node.borrow().children[0].clone();
+    //let mut best_guess = 103_996_681_152;
+    let mut best_guess = 3876027196180;
+    println!("{}", best_guess);
 
     loop {
-        let mut b = vec![];
-        for c in &op_node.borrow().children {
-            let value = recurse_collapse(c.clone());
-            b.push(value);
-        }
+        let value = recurse_collapse(node.clone());
 
-        if b[0] == b[1] {
+        if value == 0 {
             break;
         }
 
-        println!("{:?}", b);
-        let guess = if b[0] > b[1] {
-            b[1] - b[0]
-        } else if b[1] < b[0] {
-            b[0] - b[1]
-        } else {
-            b[1] - b[0]
-        };
+        println!("{}", best_guess);
 
-        // For the example
+        //// For the example
         let me = find_node(node.clone(), "humn").unwrap();
-        set_node_value(me, guess);
+        //(2748779069440..=5497558138880)
+        set_node_value(me, best_guess);
+
+        best_guess += 1;
     }
 
     let search = find_node(node.clone(), "humn");
@@ -182,6 +183,27 @@ fn part2(file: &'static str) -> i64 {
         .borrow()
         .read()
         .unwrap()
+}
+
+fn too_low_guess(rc_node: &RNode) -> bool {
+    let mut b = vec![];
+    for c in &rc_node.borrow().children {
+        let value = recurse_collapse(c.clone());
+        b.push(value);
+    }
+
+    b[0] < b[1]
+}
+
+fn guess(rc_node: &RNode) -> i128 {
+    let mut b = vec![];
+    for c in &rc_node.borrow().children {
+        let value = recurse_collapse(c.clone());
+        b.push(value);
+    }
+
+    println!("{:?}", b);
+    b[1] - b[0]
 }
 
 fn find_node(rc_node: RNode, name: &'static str) -> Option<RNode> {
@@ -204,7 +226,7 @@ fn find_node(rc_node: RNode, name: &'static str) -> Option<RNode> {
     return None
 }
 
-fn set_node_value(rc_node: RNode, value: i64) {
+fn set_node_value(rc_node: RNode, value: i128) {
     let mut node = rc_node.borrow_mut();
 
     if let Instruction::Number(n) = node.instruction {
@@ -255,7 +277,7 @@ fn collapse(rc_node: RNode, result: RNode) -> RNode {
     }
 }
 
-fn recurse_collapse(rc_node: RNode) -> i64 {
+fn recurse_collapse(rc_node: RNode) -> i128 {
     if let Some(n) = rc_node.borrow().read_value() {
         n
     } else {
@@ -342,7 +364,7 @@ fn parse(file: &'static str, part: usize) -> Instructions {
     for line in contents.split_terminator("\n") {
         let (name, instruction) = line.split_once(": ").unwrap();
 
-        let parse = instruction.parse::<i64>();
+        let parse = instruction.parse::<i128>();
 
         let n = if parse.is_err() {
             let left = &instruction[0..4];
