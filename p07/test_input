@@ -1,7 +1,0 @@
-$ cd /
-dir a
-$ cd a
-dir a
-2 a.txt
-$ cd a
-99999 a.txt
