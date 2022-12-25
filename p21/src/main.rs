@@ -61,7 +61,6 @@ impl Node {
             Instruction::Op('/') => nums[0] / nums[1],
             Instruction::Op('-') => nums[0] - nums[1],
             Instruction::Op('=') => {
-                let (a, b) = (format!("{}", nums[0]), format!("{}", nums[1]));
                 if nums[0] == nums[1] {
                     0
                 } else if nums[0] > nums[1] {
@@ -154,11 +153,9 @@ fn part2(file: &'static str) -> u64 {
     build_tree(node.clone(), &contents, "root".to_string());
 
     let op_node = &node.borrow().children[0].clone();
-    let mul_factor = 2;
     let mut best_guess = 1;
     let mut log_factor = initial_log_factor(&op_node) - 2;
     let mut add_factor = 1;
-    let mut prev_val = 0;
 
     loop {
         let value = recurse_collapse(node.clone());
@@ -175,7 +172,6 @@ fn part2(file: &'static str) -> u64 {
 
         let me = find_node(node.clone(), "humn").unwrap();
         set_node_value(me, best_guess);
-        prev_val = value;
     }
 
     let search = find_node(node.clone(), "humn");
@@ -223,7 +219,7 @@ fn find_node(rc_node: RNode, name: &'static str) -> Option<RNode> {
 fn set_node_value(rc_node: RNode, value: u64) {
     let mut node = rc_node.borrow_mut();
 
-    if let Instruction::Number(n) = node.instruction {
+    if let Instruction::Number(_) = node.instruction {
         node.instruction = Instruction::Number(value);
     }
 }
