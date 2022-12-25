@@ -163,14 +163,7 @@ fn part2(file: &'static str) -> u64 {
     loop {
         let value = recurse_collapse(node.clone());
         add_factor = 10_u64.pow(log_factor);
-        // There has to be a way to make a proper balancing method
-        // here, but I've yet to figure out how to do this though
-        //
-        // I increase the guess by *= 2 making it 'too low' at
-        // some point. Then I divide it /= 2 so it will move back
-        // to 'too high'. Then I increase per factor until I hit
-        // 'too low' again. Then it should drop a log factor ...
-        // but how do I keep state :P
+
         if value == 0 {
             break;
         } else if value == 1 { // too high
