@@ -5,8 +5,8 @@ fn main() {
     println!("P2: {}", part2("input"));
 }
 
-fn snafu_number_to_int(string: String) -> i32 {
-    let mut num: i32 = 0;
+fn snafu_number_to_int(string: String) -> i64 {
+    let mut num: i64 = 0;
     let mut i: u32 = 0;
     for c in string.chars().rev() {
         let value = match c {
@@ -18,7 +18,7 @@ fn snafu_number_to_int(string: String) -> i32 {
             _ => panic!("PURE SNAFU")
         };
 
-        num += 5_i32.pow(i) * value;
+        num += 5_i64.pow(i) * value;
         i += 1;
     }
     num
@@ -30,9 +30,9 @@ fn test_snafu_number_to_int() {
     assert_eq!(snafu_number_to_int(String::from("1121-1110-1=0")), 314159265);
 }
 
-fn int_to_snafu_number(mut int: i32) -> String {
+fn int_to_snafu_number(mut int: i64) -> String {
     let mut snafu = String::new();
-    let fives: i32 = 5;
+    let fives: i64 = 5;
 
     while int > 0 {
         let base = int % fives;
@@ -67,7 +67,7 @@ fn test_int_to_snafu_number() {
 fn part1(file: &'static str) -> String {
     let snafu_numbers = parse(file);
 
-    let total = snafu_numbers.iter().map(|s| snafu_number_to_int(s.to_string())).sum::<i32>();
+    let total = snafu_numbers.iter().map(|s| snafu_number_to_int(s.to_string())).sum::<i64>();
 
     println!("{}", total);
     int_to_snafu_number(total)
