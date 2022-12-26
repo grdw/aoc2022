@@ -7,4 +7,4 @@ edition = "2021"
 
 [dependencies]
 regex = "1"
-permutator = "0.4.3"
+itertools = "0.10.5"
