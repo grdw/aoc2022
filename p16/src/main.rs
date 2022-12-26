@@ -1,10 +1,7 @@
 use std::fs;
-use itertools::Itertools;
-use std::collections::{HashMap, BinaryHeap, VecDeque};
+use std::collections::{HashMap, BinaryHeap};
 use std::cmp::Ordering;
 use regex::Regex;
-
-const TIME: usize = 30;
 
 #[derive(Debug, Clone)]
 struct Edge(usize, usize);
@@ -19,7 +16,7 @@ struct Valve {
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 struct State {
     time: usize,
-    flow_rate: usize,
+    flow_rate: u128,
     position: usize,
 }
 
@@ -60,7 +57,11 @@ fn dijkstra(edges: &Edges, start: usize, goal: usize) -> Option<State> {
         if time > dist[position] { continue; }
 
         for edge in &edges[position] {
-            let next = State { time: time + 1, flow_rate: (edge.1) * (30 - (time + 1)), position: edge.0 };
+            let next = State {
+                time: time + 1,
+                flow_rate: (edge.1 as u128).pow((30 - time - 1) as u32),
+                position: edge.0
+            };
 
             if next.time < dist[next.position] {
                 heap.push(next);
@@ -75,30 +76,49 @@ fn dijkstra(edges: &Edges, start: usize, goal: usize) -> Option<State> {
 
 fn part1(file: &'static str) -> usize {
     let (mut valves, edges) = parse(file);
-    let mut max = 0;
+    let mut current = 0;
+    let mut total_flow_rate = 0;
+    let mut minutes = 30;
 
     valves.retain(|v| v.flow_rate > 0);
 
-    for mut perm in valves.iter().permutations(valves.len()).unique() {
-        let mut total_flow_rate = 0;
-        let mut current = 0;
-        let mut minutes = 30;
+    sort_valves(&mut valves, &edges, current);
+    debug(&valves);
 
-        while let Some(valve) = perm.pop() {
-            let state = dijkstra(&edges, current, valve.id).unwrap();
-            if minutes < (state.time + 1) {
-                break;
-            }
-            minutes -= (state.time + 1);
-            total_flow_rate += (valve.flow_rate * minutes);
-            current = valve.id;
+    while let Some(valve) = valves.pop() {
+        let state = dijkstra(&edges, current, valve.id).unwrap();
+        let travel_time = state.time + 1;
+        if minutes < travel_time {
+            break;
         }
-
-        if total_flow_rate > max {
-            max = total_flow_rate
-        }
+        minutes -= travel_time;
+        total_flow_rate += valve.flow_rate * minutes;
+        current = valve.id;
+        sort_valves(&mut valves, &edges, current);
+        debug(&valves);
     }
-    max
+    total_flow_rate
+}
+
+fn debug(valves: &Valves) {
+    println!("{:?}", valves.iter().map(|n| &n.name).collect::<Vec<&String>>());
+    println!("");
+}
+
+fn sort_valves(valves: &mut Valves, edges: &Edges, current: usize) {
+    //for v in valves {
+    //    let d_v = dijkstra(&edges, current, v.id).unwrap();
+    //    println!("{} {:?} {} ", v.name, d_v.flow_rate, v.flow_rate);
+
+    //}
+
+    valves.sort_by(|v, ov| {
+        let d_v = dijkstra(&edges, current, v.id).unwrap();
+        let d_ov = dijkstra(&edges, current, ov.id).unwrap();
+
+        println!("{} {:?} | {} {:?}", v.name, d_v, ov.name, d_ov);
+        d_v.flow_rate.cmp(&d_ov.flow_rate).then_with(|| d_ov.time.cmp(&d_v.time))
+    });
 }
 
 #[test]
