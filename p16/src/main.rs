@@ -1,134 +1,112 @@
 use std::fs;
-use std::collections::{HashSet, HashMap, VecDeque};
-use std::{thread, time::Duration};
+use std::collections::{HashMap, BinaryHeap, VecDeque};
+use std::cmp::Ordering;
 use regex::Regex;
 
 const TIME: usize = 30;
 
-type Routes = HashMap<String, Vec<String>>;
-type FlowRates = HashMap<String, u32>;
-type ValveStates = HashMap<String, bool>;
+#[derive(Debug, Clone)]
+struct Edge(usize);
 
-#[derive(Debug)]
-enum Move {
-    OpenValve(String),
-    Navigate(String),
-    Idle
+#[derive(Debug, Eq, PartialEq)]
+struct Valve {
+    id: usize,
+    name: String,
+    flow_rate: usize
 }
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+struct State {
+    cost: usize,
+    position: usize,
+}
+
+impl Ord for State {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // Notice that the we flip the ordering on costs.
+        // In case of a tie we compare positions - this step is necessary
+        // to make implementations of `PartialEq` and `Ord` consistent.
+        other.cost.cmp(&self.cost)
+            .then_with(|| self.position.cmp(&other.position))
+    }
+}
+
+// `PartialOrd` needs to be implemented as well.
+impl PartialOrd for State {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+type Edges = Vec<Vec<Edge>>;
+type Valves = Vec<Valve>;
 
 fn main() {
     println!("P1: {}", part1("input"));
     println!("P2: {}", part2("input"));
 }
 
-fn part1(file: &'static str) -> usize {
-    let (graph, flow_rates, mut valve_states) = parse(file);
-    let start = Move::Navigate("AA".to_string());
-    let mut total_flow_rates: Vec<u32> = vec![];
+fn dijkstra(edges: &Edges, start: usize, goal: usize) -> Option<usize> {
+    let mut dist: Vec<_> = (0..edges.len()).map(|_| usize::MAX).collect();
+    let mut heap = BinaryHeap::new();
 
-    println!("{:?}", graph);
-    println!("{:?}", flow_rates);
-    println!("{:?}", valve_states);
-    dfs(
-        &graph,
-        &flow_rates,
-        &mut valve_states,
-        start,
-        &mut total_flow_rates,
-        0,
-        4
-    );
+    dist[start] = 0;
+    heap.push(State { cost: 0, position: start });
 
-    println!("{:?}", total_flow_rates);
-    0
-}
+    while let Some(State { cost, position }) = heap.pop() {
+        if position == goal { return Some(cost); }
+        if cost > dist[position] { continue; }
 
-fn dfs(
-    graph: &Routes,
-    flow_rates: &FlowRates,
-    valve_states: &mut ValveStates,
-    mx: Move,
-    total_flow_rates: &mut Vec<u32>,
-    total_flow_rate: u32,
-    time: usize
-) {
+        for edge in &edges[position] {
+            let next = State { cost: cost + 1, position: edge.0 };
 
-    println!("{:?} {}", mx, time);
-    if time <= 0 {
-        if total_flow_rate > 0 {
-            total_flow_rates.push(total_flow_rate);
+            if next.cost < dist[next.position] {
+                heap.push(next);
+
+                dist[next.position] = next.cost;
+            }
         }
-        // Add total flow rate to list
-        return
     }
 
-    //thread::sleep(Duration::from_millis(1000));
+    None
+}
 
-    match mx {
-        Move::Navigate(node_name) => {
-            let children = graph.get(&node_name).unwrap();
-            let read_valves = valve_states.clone(); // Because, fuck you Rust!
-            let valve_state = read_valves.get(&node_name).unwrap();
-            let flow_rate = flow_rates.get(&node_name).unwrap();
+fn part1(file: &'static str) -> usize {
+    let (mut valves, edges) = parse(file);
+    let mut current = 0;
+    let mut total_flow_rate = 0;
+    let mut minutes = 30;
 
-            let mut t_opens: u32 = 0;
-            for (valve, state) in &read_valves {
-                if !state { continue };
+    valves.retain(|v| v.flow_rate > 0);
+    sort_valves(&mut valves, &edges, current, minutes);
 
-                let rate = flow_rates.get(valve).unwrap();
-                println!("{:?} {}", rate, valve);
-                t_opens += rate;
-            }
+    while let Some(valve) = valves.pop() {
+        let time = dijkstra(&edges, current, valve.id).unwrap() + 1;
+        total_flow_rate += (valve.flow_rate * (minutes - time));
 
-            println!("{:?} {}", total_flow_rate, t_opens);
+        minutes -= time;
+        println!("{} {}", current, valve.id);
+        println!("{:?} Travel time: {} Time left: {} name: {}", total_flow_rate, time, minutes, valve.name);
 
+        current = valve.id;
+        sort_valves(&mut valves, &edges, current, minutes);
+    }
+    println!("{:?}", minutes);
+    total_flow_rate
+}
 
-            for kid in children {
-                dfs(
-                    graph,
-                    flow_rates,
-                    valve_states,
-                    Move::Navigate(kid.to_string()),
-                    total_flow_rates,
-                    total_flow_rate,
-                    time - 1
-                );
-            }
+fn sort_valves(valves: &mut Valves, edges: &Edges, current: usize, total_time_left: usize) {
+    valves.sort_by(|left, right| {
+        let t_left = dijkstra(&edges, current, left.id).unwrap();
+        let t_right = dijkstra(&edges, current, right.id).unwrap();
+        let l_edge_count = edges[left.id].len();
+        let r_edge_count = edges[right.id].len();
 
-            if !valve_state && *flow_rate > 0 {
-                dfs(
-                    graph,
-                    flow_rates,
-                    valve_states,
-                    Move::OpenValve(node_name),
-                    total_flow_rates,
-                    total_flow_rate,
-                    time - 1
-                );
-            }
-        },
-        Move::OpenValve(node_name) => {
-            let children = graph.get(&node_name).unwrap();
-            let valve_state = valve_states.get_mut(&node_name).unwrap();
-            let flow_rate = flow_rates.get(&node_name).unwrap();
-            *valve_state = true;
-            println!("{}", "OPEN");
-
-            for kid in children {
-                dfs(
-                    graph,
-                    flow_rates,
-                    valve_states,
-                    Move::Navigate(kid.to_string()),
-                    total_flow_rates,
-                    total_flow_rate + flow_rate,
-                    time - 1
-                );
-            }
-
-        },
-        _ => println!("PAIN!")
-    };
+        let l = left.flow_rate * (total_time_left - t_left);
+        let r = right.flow_rate * (total_time_left - t_right);
+        //println!("L: {} ({}) with R: {} ({})", left.name, l, right.name, r);
+        l.cmp(&r).then_with(|| t_right.cmp(&t_left)).then_with(|| r_edge_count.cmp(&l_edge_count))
+    });
 }
 
 #[test]
@@ -145,31 +123,41 @@ fn test_part2() {
     assert_eq!(part2("test_input"), 1)
 }
 
-fn parse(file: &'static str) -> (Routes, FlowRates, ValveStates) {
+fn parse(file: &'static str) -> (Valves, Edges) {
     let contents = fs::read_to_string(file).unwrap();
     let re = Regex::new(r"Valve ([A-Z]{2}) has flow rate=(\d+); tunnels? leads? to valves? ([A-Z, ]+)").unwrap();
 
-    let mut routes: Routes = HashMap::new();
-    let mut flow_rates: FlowRates = HashMap::new();
-    let mut valve_states: ValveStates = HashMap::new();
+    let mut valves: Valves = vec![];
+    let mut map: HashMap<usize, Vec<String>> = HashMap::new();
 
-    for line in contents.split_terminator("\n") {
+    for (id, line) in contents.split_terminator("\n").enumerate() {
         let caps = re.captures(line).unwrap();
         let name = &caps[1];
-        let flow_rate = caps[2].parse::<u32>().unwrap();
+        let flow_rate = caps[2].parse::<usize>().unwrap();
         let kids = &caps[3];
 
-        routes.insert(name.to_string(), vec![]);
-        valve_states.insert(name.to_string(), false);
-        flow_rates.insert(name.to_string(), flow_rate);
+        let valve = Valve {
+            id: id,
+            name: name.to_string(),
+            flow_rate: flow_rate,
+        };
+        valves.push(valve);
 
         for kid in kids.split(", ") {
-            routes
-                .entry(name.to_string())
-                .and_modify(|v| v.push(kid.to_string()));
+            map
+                .entry(id)
+                .and_modify(|v| v.push(kid.to_string()))
+                .or_insert(vec![kid.to_string()]);
         }
     }
 
-    (routes, flow_rates, valve_states)
-}
+    let mut edges: Edges = vec![vec![]; valves.len()];
+    for (id, kids) in map {
+        for kid in kids {
+            let v = valves.iter().find(|v| v.name == kid).unwrap();
+            edges[id].push(Edge(v.id));
+        }
+    }
 
+    (valves, edges)
+}
