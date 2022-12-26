@@ -69,7 +69,6 @@ fn part1(file: &'static str) -> String {
 
     let total = snafu_numbers.iter().map(|s| snafu_number_to_int(s.to_string())).sum::<i64>();
 
-    println!("{}", total);
     int_to_snafu_number(total)
 }
 
