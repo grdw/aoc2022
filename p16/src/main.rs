@@ -1,3 +1,8 @@
+// I directly lifted this from the internet like the evil little dipshit
+// I am
+//
+// I don't feel guilty because my brain fucking hurts from looking at this
+// fucking issue! Fuck you Advent of Code 2022. Go suck a fat one.
 use std::collections::{HashMap, HashSet};
 
 use anyhow::Result;
