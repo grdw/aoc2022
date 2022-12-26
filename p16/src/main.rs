@@ -1,170 +1,261 @@
-use std::fs;
-use std::collections::{HashMap, BinaryHeap};
-use std::process::Command;
-use std::cmp::Ordering;
-use regex::Regex;
+use std::collections::{HashMap, HashSet};
 
-#[derive(Debug, Clone)]
-struct Edge(usize);
+use anyhow::Result;
 
-#[derive(Debug, Eq, PartialEq)]
-struct Valve {
-    id: usize,
-    name: String,
-    flow_rate: usize
+pub fn main() -> Result<()> {
+    let start = std::time::Instant::now();
+    let soln_a = solve_a()?;
+    eprintln!("Part A elapsed {:?}", start.elapsed());
+    println!("solution part A: {}", soln_a);
+
+    let start = std::time::Instant::now();
+    let soln_b = solve_b()?;
+    eprintln!("Part B elapsed {:?}", start.elapsed());
+    println!("solution part B: {}", soln_b);
+
+    Ok(())
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-struct State {
+const MAX_ROOMS: usize = 60;
+
+type DistanceM = [[usize; MAX_ROOMS]; MAX_ROOMS];
+
+#[derive(Debug, Default, Eq, PartialEq, Hash)]
+struct Room {
+    flow_rate: usize,
+    neighbors: Vec<usize>,
+}
+
+#[derive(Debug)]
+struct Cave {
+    aa_idx: usize,
+    rooms: Vec<Room>,
+    name2idx: HashMap<String, usize>,
+}
+
+impl Cave {
+    fn new() -> Cave {
+        let rooms = Vec::with_capacity(MAX_ROOMS);
+        let name2idx = HashMap::new();
+        Cave {
+            aa_idx: usize::MAX,
+            rooms,
+            name2idx,
+        }
+    }
+
+    fn calc_distances(&self) -> DistanceM {
+        let mut dist = [[usize::MAX; MAX_ROOMS]; MAX_ROOMS];
+        let mut seen = HashSet::new();
+
+        for (i, _) in self
+            .rooms
+            .iter()
+            .enumerate()
+            .filter(|(i, r)| r.flow_rate > 0 || *i == self.aa_idx)
+        {
+            let mut current = HashSet::new();
+            current.insert(i);
+            let mut next = HashSet::new();
+            let mut d = 0;
+
+            dist[i][i] = 0;
+            while !current.is_empty() {
+                d += 1;
+                for pos in &current {
+                    for newpos in &self.rooms[*pos].neighbors {
+                        if !seen.contains(&(i, *newpos)) {
+                            next.insert(*newpos);
+                            dist[i][*newpos] = d;
+                            seen.insert((i, *newpos));
+                        }
+                    }
+                }
+                current.clear();
+                current.extend(next.drain());
+            }
+        }
+
+        dist
+    }
+}
+
+fn parse_input(input: &str) -> Cave {
+    let (_, name2idx, mut idx2room) = input.lines().fold(
+        (0usize, HashMap::new(), HashMap::new()),
+        |(mut idx, mut name2idx, mut idx2room), line| {
+            let (a, b) = line.split_once(';').unwrap();
+            let valve = &a[6..8];
+            let flow_rate = a[a.find('=').unwrap() + 1..].parse::<usize>().unwrap();
+
+            let vid = *name2idx.entry(valve.to_string()).or_insert_with(|| {
+                idx += 1;
+                idx
+            });
+
+            let mut neighbors = Vec::new();
+            let parts = b
+                .split_ascii_whitespace()
+                .skip(4)
+                .map(|x| x.trim().replace(',', ""))
+                .collect::<Vec<_>>();
+
+            for x in parts {
+                let z = *name2idx.entry(x).or_insert_with(|| {
+                    idx += 1;
+                    idx
+                });
+                neighbors.push(z);
+            }
+
+            idx2room.insert(
+                vid,
+                Room {
+                    flow_rate,
+                    neighbors,
+                },
+            );
+
+            (idx, name2idx, idx2room)
+        },
+    );
+
+    let mut cave = Cave::new();
+    let nrooms = idx2room.len();
+    cave.aa_idx = *name2idx.get("AA").unwrap();
+    cave.name2idx = name2idx;
+
+    // Push empty room since room idx begins at 1
+    cave.rooms.push(Room {
+        flow_rate: usize::MAX,
+        neighbors: vec![],
+    });
+
+    for idx in 1..=nrooms {
+        let r = idx2room.remove(&idx).unwrap();
+        cave.rooms.push(r);
+    }
+
+    cave
+}
+
+fn find_max_release(
+    dist: &DistanceM,
+    cave: &Cave,
+    current: usize,
     time: usize,
-    position: usize,
-}
+    targets: &mut HashSet<usize>,
+) -> (usize, HashSet<usize>) {
+    targets.remove(&current);
 
-impl Ord for State {
-    fn cmp(&self, other: &Self) -> Ordering {
-        // Notice that the we flip the ordering on times.
-        // In case of a tie we compare positions - this step is necessary
-        // to make implementations of `PartialEq` and `Ord` consistent.
-        other.time.cmp(&self.time)
-            .then_with(|| self.position.cmp(&other.position))
-    }
-}
+    let mut max_flow = 0;
+    let mut best_path = HashSet::new();
 
-// `PartialOrd` needs to be implemented as well.
-impl PartialOrd for State {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
+    for t in targets.iter() {
+        let time_remain = time.saturating_sub(dist[current][*t]).saturating_sub(1);
+        if time_remain > 0 {
+            let mut flow = cave.rooms[*t].flow_rate * time_remain;
+            let (newflow, p) = find_max_release(dist, cave, *t, time_remain, &mut targets.clone());
+            flow += newflow;
 
-type Edges = Vec<Vec<Edge>>;
-type Valves = Vec<Valve>;
-
-fn main() {
-    println!("P1: {}", part1("input"));
-    println!("P2: {}", part2("input"));
-}
-
-fn dijkstra(edges: &Edges, start: usize, goal: usize) -> Option<State> {
-    let mut dist: Vec<_> = (0..edges.len()).map(|_| usize::MAX).collect();
-    let mut heap = BinaryHeap::new();
-
-    dist[start] = 0;
-    heap.push(State { time: 0, position: start });
-
-    while let Some(State { time, position }) = heap.pop() {
-        if position == goal { return Some( State { time, position }); }
-        if time > dist[position] { continue; }
-
-        for edge in &edges[position] {
-            let next = State {
-                time: time + 1,
-                position: edge.0
-            };
-
-            if next.time < dist[next.position] {
-                heap.push(next);
-
-                dist[next.position] = next.time;
+            if flow > max_flow {
+                max_flow = flow;
+                let mut tmp = p.clone();
+                tmp.insert(current);
+                best_path = tmp;
             }
         }
     }
-
-    None
+    (max_flow, best_path)
 }
 
-fn part1(file: &'static str) -> usize {
-    let (mut valves, edges) = parse(file);
-    let mut cached_distances = HashMap::new();
-    let mut max_flow = 0;
-    let start_id = valves.iter().find(|v| v.name == "AA".to_string()).unwrap().id;
+pub fn solve_a() -> Result<usize> {
+    let cave = parse_input(include_str!("../input"));
+    let distances = cave.calc_distances();
 
-    valves.retain(|v| v.flow_rate > 0 || v.name == "AA".to_string());
+    let mut targets = HashSet::from_iter(
+        cave.rooms
+            .iter()
+            .enumerate()
+            .filter(|(i, r)| r.flow_rate > 0 || *i == cave.aa_idx)
+            .map(|(i, _)| i),
+    );
 
-    for v in &valves {
-        for ov in &valves {
-            let key = format!("{}-{}", v.id, ov.id);
-            cached_distances.insert(key, dijkstra(&edges, v.id, ov.id).unwrap());
-        }
-    }
+    let (x, _) = find_max_release(&distances, &cave, cave.aa_idx, 30, &mut targets);
 
-    valves.retain(|v| v.flow_rate > 0);
-
-    println!("{:?}", cached_distances);
-    //let mut current = start_id;
-    //let mut total_flow_rate = 0;
-    //let mut minutes = 30;
-
-    //while let Some(valve) = perm.pop() {
-    //    if current == valve.id { continue }
-
-    //    let key = format!("{}-{}", current, valve.id);
-    //    let travel_time = cached_distances[&key];
-    //    if minutes < travel_time {
-    //        break;
-    //    }
-    //    minutes -= travel_time;
-    //    total_flow_rate += valve.flow_rate * minutes;
-    //    current = valve.id;
-    //}
-
-    max_flow
+    Ok(x)
 }
 
-fn debug(valves: Vec<&Valve>) {
-    println!("{:?}", valves.iter().map(|n| &n.name).collect::<Vec<&String>>());
-    println!("");
-}
+pub fn solve_b() -> Result<usize> {
+    // This fails on the example data as the human takes all of the work
+    // In all honesty I'm not sure that this should work given I assumed that
+    // the human takes the optimal path and the elephant just optimizes on the
+    // remaining network after removing the path the human took. blahh
 
-#[test]
-fn test_part1() {
-    assert_eq!(part1("test_input"), 1651)
-}
+    let cave = parse_input(include_str!("../input"));
+    let distances = cave.calc_distances();
+    //
+    // let mut a = cave.name2idx.iter().collect::<Vec<_>>();
+    // a.sort_unstable_by(|a, b| b.1.cmp(a.1));
+    // for (k, v) in a {
+    //     println!("{}: {}", v, k);
+    // }
 
-fn part2(file: &'static str) -> usize {
-    0
-}
+    let mut targets = HashSet::from_iter(
+        cave.rooms
+            .iter()
+            .enumerate()
+            .filter(|(i, r)| r.flow_rate > 0 || *i == cave.aa_idx)
+            .map(|(i, _)| i),
+    );
 
-#[test]
-fn test_part2() {
-    assert_eq!(part2("test_input"), 1)
-}
+    let (human_release, human_path) =
+        find_max_release(&distances, &cave, cave.aa_idx, 26, &mut targets);
 
-fn parse(file: &'static str) -> (Valves, Edges) {
-    let contents = fs::read_to_string(file).unwrap();
-    let re = Regex::new(r"Valve ([A-Z]{2}) has flow rate=(\d+); tunnels? leads? to valves? ([A-Z, ]+)").unwrap();
+    let mut cave_elephant = Cave::new();
+    cave_elephant.aa_idx = cave.aa_idx;
+    cave_elephant.name2idx = cave.name2idx.clone();
 
-    let mut valves: Valves = vec![];
-    let mut map: HashMap<usize, Vec<String>> = HashMap::new();
-
-    for (id, line) in contents.split_terminator("\n").enumerate() {
-        let caps = re.captures(line).unwrap();
-        let name = &caps[1];
-        let flow_rate = caps[2].parse::<usize>().unwrap();
-        let kids = &caps[3];
-
-        let valve = Valve {
-            id: id,
-            name: name.to_string(),
-            flow_rate: flow_rate,
+    for (ri, r) in cave.rooms.iter().enumerate() {
+        let re = Room {
+            flow_rate: r.flow_rate,
+            neighbors: r
+                .neighbors
+                .iter()
+                .filter(|n| !human_path.contains(n))
+                .copied()
+                .collect(),
         };
-        valves.push(valve);
 
-        for kid in kids.split(", ") {
-            map
-                .entry(id)
-                .and_modify(|v| v.push(kid.to_string()))
-                .or_insert(vec![kid.to_string()]);
+        if human_path.contains(&ri) && ri != cave.aa_idx {
+            cave_elephant.rooms.push(Room {
+                flow_rate: 0,
+                neighbors: vec![],
+            });
+        } else {
+            cave_elephant.rooms.push(re);
         }
     }
 
-    let mut edges: Edges = vec![vec![]; valves.len()];
-    for (id, kids) in map {
-        for kid in kids {
-            let v = valves.iter().find(|v| v.name == kid).unwrap();
-            edges[id].push(Edge(v.id));
-        }
-    }
+    let mut targets_elephant = HashSet::from_iter(
+        cave_elephant
+            .rooms
+            .iter()
+            .enumerate()
+            .filter(|(i, r)| r.flow_rate > 0 || *i == cave_elephant.aa_idx)
+            .map(|(i, _)| i),
+    );
 
-    (valves, edges)
+    let (elephant_release, _) = find_max_release(
+        &distances,
+        &cave_elephant,
+        cave_elephant.aa_idx,
+        26,
+        &mut targets_elephant,
+    );
+
+    let x = human_release + elephant_release;
+
+    Ok(x)
 }
+
