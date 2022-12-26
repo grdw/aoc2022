@@ -16,7 +16,7 @@ struct Valve {
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 struct State {
     time: usize,
-    flow_rate: u128,
+    flow_rate: usize,
     position: usize,
 }
 
@@ -59,7 +59,7 @@ fn dijkstra(edges: &Edges, start: usize, goal: usize) -> Option<State> {
         for edge in &edges[position] {
             let next = State {
                 time: time + 1,
-                flow_rate: (edge.1 as u128).pow((30 - time - 1) as u32),
+                flow_rate: edge.1 * (30 - time - 1),
                 position: edge.0
             };
 
@@ -85,7 +85,9 @@ fn part1(file: &'static str) -> usize {
     sort_valves(&mut valves, &edges, current);
     debug(&valves);
 
+    println!("START AT 'AA");
     while let Some(valve) = valves.pop() {
+        println!("GO TO '{}", valve.name.to_string());
         let state = dijkstra(&edges, current, valve.id).unwrap();
         let travel_time = state.time + 1;
         if minutes < travel_time {
@@ -106,12 +108,6 @@ fn debug(valves: &Valves) {
 }
 
 fn sort_valves(valves: &mut Valves, edges: &Edges, current: usize) {
-    //for v in valves {
-    //    let d_v = dijkstra(&edges, current, v.id).unwrap();
-    //    println!("{} {:?} {} ", v.name, d_v.flow_rate, v.flow_rate);
-
-    //}
-
     valves.sort_by(|v, ov| {
         let d_v = dijkstra(&edges, current, v.id).unwrap();
         let d_ov = dijkstra(&edges, current, ov.id).unwrap();
